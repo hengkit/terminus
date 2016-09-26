@@ -9,20 +9,14 @@ namespace Pantheon\Terminus\Commands\Backup;
 
 use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 use Pantheon\Terminus\Commands\TerminusCommand;
+use Pantheon\Terminus\Site\SiteAwareInterface;
+use Pantheon\Terminus\Site\SiteAwareTrait;
 use Terminus\Collections\Sites;
 use Terminus\Models\Environment;
 
-class ListCommand extends TerminusCommand
+class ListCommand extends TerminusCommand implements SiteAwareInterface
 {
-
-    /**
-     * Contructor that supports injection for unit testing.
-     */
-    public function __construct($sites = null)
-    {
-        parent::__construct();
-        $this->sites = $sites ? $sites : new Sites();
-    }
+    use SiteAwareTrait;
 
     /**
      * Lists the Backups for a given Site and Environment
@@ -32,9 +26,8 @@ class ListCommand extends TerminusCommand
      * @command backup:list
      * @aliases backups
      *
-     * @param string $environment Name of the environment to retrieve
-     * @param string $element Element filter code/files/database/db (optional)
-     *
+     * @param string $site_env Site & environment to deploy to, in the form `site-name.env`.
+*    * @param string $element [code|files|database|db] Only show backups of a certain type
      * @param array $options [format=<table|csv|yaml|json>]
      *
      * @return RowsOfFields
@@ -49,23 +42,11 @@ class ListCommand extends TerminusCommand
      *
      */
     public function listBackups(
-        $environment,
+        $site_env,
         $element = 'all',
         $options = ['format' => 'table']
-    )
-    {
-        $backups = [[]];
-
-        $site_env = explode('.', $environment);
-        if (count($site_env) != 2) {
-            $this->log()
-                ->error('The environment argument must be given as <site_name>.<environment>');
-
-            return new RowsOfFields($backups);
-        }
-
-        $site = $this->sites->get($site_env[0]);
-        $env = $site->environments->get($site_env[1]);
+    ) {
+        list(, $env) = $this->getSiteEnv($site_env, 'dev');
 
         switch ($element) {
             case 'all':
@@ -79,13 +60,14 @@ class ListCommand extends TerminusCommand
         }
 
         $backups = $env->backups->getFinishedBackups($backup_element);
+        $data = []
         foreach ($backups as $id => $backup) {
-          $data[] = [
-            'file'      => $backup->get('filename'),
-            'size'      => $backup->getSizeInMb(),
-            'date'      => $backup->getDate(),
-            'initiator' => $backup->getInitiator(),
-          ];
+            $data[] = [
+                'file'      => $backup->get('filename'),
+                'size'      => $backup->getSizeInMb(),
+                'date'      => $backup->getDate(),
+                'initiator' => $backup->getInitiator(),
+            ];
         }
 
         // Return the output data.
