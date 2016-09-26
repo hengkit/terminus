@@ -331,8 +331,10 @@ class Site extends TerminusModel
     {
         $response = $this->request->request($this->url);
         $this->upstream = new Upstream($response['data']->upstream, ['site' => $this,]);
-        unset($response['data']->upstream);
-        $this->attributes = $response['data'];
+        $this->attributes = (object)array_merge(
+            (array)$this->attributes,
+            (array)$this->parseAttributes($response['data'])
+        );
         return $this;
     }
 
@@ -343,10 +345,11 @@ class Site extends TerminusModel
    */
     public function fetchAttributes()
     {
-        $response = $this->request->request(
-            sprintf('sites/%s/settings', $this->id)
+        $response = $this->request->request("sites/{$this->id}/settings");
+        $this->attributes = (object)array_merge(
+            (array)$this->attributes,
+            (array)$this->parseAttributes($response['data'])
         );
-        $this->attributes = $response['data'];
     }
 
   /**
@@ -607,16 +610,17 @@ class Site extends TerminusModel
         return $workflow;
     }
 
-  /**
-   * Verifies if the given framework is in use
-   *
-   * @param string $framework_name Name of framework to verify
-   * @return bool
-   * @todo This function is unused; remove?
-   */
-    private function hasFramework($framework_name)
+    /**
+     * Modify response data between fetch and assignment
+     *
+     * @param object $data attributes received from API response
+     * @return object $data
+     */
+    protected function parseAttributes($data)
     {
-        $has_framework = ($framework_name == $this->get('framework'));
-        return $has_framework;
+        if (property_exists($data, 'php_version')) {
+            $data->php_version = substr($data->php_version, 0, 1) . '.' . substr($data->php_version, 1, 1);
+        }
+        return $data;
     }
 }

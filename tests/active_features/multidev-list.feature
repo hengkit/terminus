@@ -8,6 +8,6 @@ Feature: Listing a site's environments
     And a site named "[[test_site_name]]"
 
   @vcr site_environments
-  Scenario: Listing all environments belonging to a site
-    When I run "terminus env:list --site=[[test_site_name]]"
-    Then I should get: "OnServer Dev?"
+  Scenario: Listing all multidev environments belonging to a site
+    When I run "terminus multidev:list [[test_site_name]] --format=json"
+    Then I should get: ""

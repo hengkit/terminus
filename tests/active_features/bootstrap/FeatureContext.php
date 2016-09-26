@@ -650,10 +650,12 @@ class FeatureContext implements Context, SnippetAcceptingContext
             $command = "TERMINUS_VCR_MODE=$mode $command";
         }
         $command = preg_replace($regex, $terminus_cmd, $command);
+        echo $command . PHP_EOL;
 
         ob_start();
         passthru($command . ' 2>&1');
         $this->output = ob_get_clean();
+        echo $this->output . PHP_EOL;
 
         return $this->output;
     }

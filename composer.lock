@@ -163,12 +163,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/consolidation/Robo.git",
-                "reference": "217d626e92be64521020187a772ffafbd529d6e3"
+                "reference": "8d654a15edace2de886c3e0e6962163b117d1d6c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/consolidation/Robo/zipball/217d626e92be64521020187a772ffafbd529d6e3",
-                "reference": "217d626e92be64521020187a772ffafbd529d6e3",
+                "url": "https://api.github.com/repos/consolidation/Robo/zipball/8d654a15edace2de886c3e0e6962163b117d1d6c",
+                "reference": "8d654a15edace2de886c3e0e6962163b117d1d6c",
                 "shasum": ""
             },
             "require": {
@@ -229,7 +229,7 @@
                 }
             ],
             "description": "Modern task runner",
-            "time": "2016-09-19 19:48:01"
+            "time": "2016-09-23 23:59:25"
         },
         {
             "name": "container-interop/container-interop",
@@ -1826,16 +1826,16 @@
         },
         {
             "name": "behat/behat",
-            "version": "v3.2.0",
+            "version": "v3.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Behat/Behat.git",
-                "reference": "73b433326c87bbd8bc528ce57c29722405ffff5e"
+                "reference": "df7d9225e9ee37fdaa54273e3e0aecf2515bbe76"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Behat/Behat/zipball/73b433326c87bbd8bc528ce57c29722405ffff5e",
-                "reference": "73b433326c87bbd8bc528ce57c29722405ffff5e",
+                "url": "https://api.github.com/repos/Behat/Behat/zipball/df7d9225e9ee37fdaa54273e3e0aecf2515bbe76",
+                "reference": "df7d9225e9ee37fdaa54273e3e0aecf2515bbe76",
                 "shasum": ""
             },
             "require": {
@@ -1903,7 +1903,7 @@
                 "symfony",
                 "testing"
             ],
-            "time": "2016-09-20 07:23:29"
+            "time": "2016-09-25 09:40:39"
         },
         {
             "name": "behat/gherkin",

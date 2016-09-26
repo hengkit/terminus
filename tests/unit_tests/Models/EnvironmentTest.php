@@ -281,6 +281,31 @@ class EnvironmentTest extends TerminusTest
         $this->setDummyCredentials();
     }
 
+    /**
+     * Ensure the correct serialize data for environments
+     *
+     * @vcr site_connection-info
+     */
+    public function testSerialize()
+    {
+        $this->logInWithVCRCredentials();
+        $site = $this->sites->get('behat-tests');
+        $env = $site->environments->get('dev');
+        $data = $env->serialize();
+        $this->assertArrayHasKey($data, 'id');
+        $this->assertArrayHasKey($data, 'created');
+        $this->assertArrayHasKey($data, 'domain');
+        $this->assertArrayHasKey($data, 'onserverdev');
+        $this->assertTrue(in_array($data['onserverdev'], ['true', 'false',]));
+        $this->assertArrayHasKey($data, 'locked');
+        $this->assertTrue(in_array($data['locked'], ['true', 'false',]));
+        $this->assertArrayHasKey($data, 'initialized');
+        $this->assertTrue(in_array($data['initialized'], ['true', 'false',]));
+        $this->assertArrayHasKey($data, 'connection_mode');
+        $this->assertTrue(in_array($data['onserverdev'], ['git', 'sftp',]));
+        $this->assertArrayHasKey($data, 'php_version');
+    }
+
   /**
    * Ensure correct SFTP connection info for environments
    *
