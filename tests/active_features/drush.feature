@@ -16,7 +16,7 @@ Feature: Running Drush Commands on a Drupal Site
 
   Scenario: Running a drush command that is permitted by PantheonSSH
     When This step is implemented I will test: a permitted drush command
-    When I run "terminus drush [[test_site_name]].dev -- gregs good example command"
+    When I run "terminus drush [[test_site_name]].dev -- php-eval 'print \"oh happy days\"'"
     Then I should get:
     """
     oh happy days
@@ -24,8 +24,8 @@ Feature: Running Drush Commands on a Drupal Site
 
   Scenario: Running a drush command that is not permitted by PantheonSSH
     When This step is implemented I will test: a protected drush command
-    When I run "terminus drush [[test_site_name]].dev -- gregs bad example command"
+    When I run "terminus drush [[test_site_name]].dev -- php-eval 'print \"oh happy days\";'"
     Then I should get:
     """
-    oh troubling days
+    Command not supported as typed
     """
