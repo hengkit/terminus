@@ -149,7 +149,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
      */
     public function iAddToTheTeamOn($email, $site)
     {
-        $this->iRun("terminus site:team:add --site=$site --member=$email");
+        $this->iRun("terminus site:team:add $site --member=$email");
     }
 
     /**
@@ -519,7 +519,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
      */
     public function iListTheTeamMembersOn($site)
     {
-        $this->iRun("terminus site:team:list --site=$site");
+        $this->iRun("terminus site:team:list $site");
     }
 
     /**
@@ -868,7 +868,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
      */
     public function isMemberOfTheTeamOn($member, $site)
     {
-        $this->iRun("terminus site:team:list --site=$site");
+        $this->iRun("terminus site:team:list $site");
         $is_member = $this->iShouldGet($member);
         return $is_member;
     }
