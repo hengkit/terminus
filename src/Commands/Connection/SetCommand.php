@@ -5,7 +5,7 @@ namespace Pantheon\Terminus\Commands\Connection;
 use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
-use Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Exceptions\TerminusException;
 
 /**
  * Class SetCommand
@@ -16,22 +16,23 @@ class SetCommand extends TerminusCommand implements SiteAwareInterface
     use SiteAwareTrait;
 
     /**
-     * Set git or sftp connection mode on a site's dev or multidev environment
+     * Sets Git or SFTP connection mode on a development environment (excludes Test and Live).
      *
-     * @authorized
+     * @authorize
      *
      * @command connection:set
      *
-     * @param string $site_env_id Name of the environment to set. Note that you cannot change 'test' or 'live'.
-     * @param string $mode Connection mode, one of: <git|sftp>
-     *
-     * @return bool
+     * @param string $site_env Site & development environment (excludes Test and Live) in the format `site-name.env`
+     * @param string $mode [git|sftp] Connection mode
      *
      * @throws TerminusException
+     *
+     * @usage terminus connection:set <site>.<env> <mode>
+     *     Sets the connection mode of <site>'s <env> environment to <mode>.
      */
-    public function connectionSet($site_env_id, $mode)
+    public function connectionSet($site_env, $mode)
     {
-        list(, $env) = $this->getSiteEnv($site_env_id);
+        list(, $env) = $this->getSiteEnv($site_env);
 
         if (in_array($env->id, ['test', 'live',])) {
             throw new TerminusException(
@@ -43,15 +44,11 @@ class SetCommand extends TerminusCommand implements SiteAwareInterface
         $workflow = $env->changeConnectionMode($mode);
         if (is_string($workflow)) {
             $this->log()->notice($workflow);
-
-            return false;
         } else {
             while (!$workflow->checkProgress()) {
                 // TODO: (ajbarry) Add workflow progress output
             }
             $this->log()->notice($workflow->getMessage());
         }
-
-        return true;
     }
 }

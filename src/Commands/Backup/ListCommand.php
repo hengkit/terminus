@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains Pantheon\Terminus\Commands\Backup\ListCommand
- */
 
 namespace Pantheon\Terminus\Commands\Backup;
 
@@ -10,41 +6,40 @@ use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
-use Terminus\Collections\Sites;
-use Terminus\Models\Environment;
 
+/**
+ * Class ListCommand
+ * @package Pantheon\Terminus\Commands\Backup
+ */
 class ListCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
 
     /**
-     * Lists the Backups for a given Site and Environment
+     * Lists backups for a specific site and environment.
      *
-     * @authorized
+     * @authorize
      *
      * @command backup:list
      * @aliases backups
      *
-     * @param string $site_env Site & environment to deploy to, in the form `site-name.env`.
-*    * @param string $element [code|files|database|db] Only show backups of a certain type
-     * @param array $options [format=<table|csv|yaml|json>]
-     *
+     * @field-labels
+     *     file: Filename
+     *     size: Size
+     *     date: Date
+     *     initiator: Initiator
      * @return RowsOfFields
      *
-     * @field-labels
-     *   file: Filename
-     *   size: Size
-     *   date: Date
-     *   initiator: Initiator
+     * @param string $site_env Site & environment in the format `site-name.env`
+     * @param string $element [code|files|database|db] Backup element filter
      *
-     * @example terminus backup:list awesome-site.dev database --format=json
-     *
+     * @usage terminus backup:list <site>.<env>
+     *     Lists all backups made of <site>'s <env> environment.
+     * @usage terminus backup:list <site>.<env> --element=<element>
+     *     Lists all <element> backups made of <site>'s <env> environment.
      */
-    public function listBackups(
-        $site_env,
-        $element = 'all',
-        $options = ['format' => 'table']
-    ) {
+    public function listBackups($site_env, $element = 'all')
+    {
         list(, $env) = $this->getSiteEnv($site_env, 'dev');
 
         switch ($element) {
@@ -58,7 +53,9 @@ class ListCommand extends TerminusCommand implements SiteAwareInterface
                 $backup_element = $element;
         }
 
-        $backups = $env->backups->getFinishedBackups($backup_element);
+
+        $backups = $env->getBackups()->getFinishedBackups($backup_element);
+
         $data = [];
         foreach ($backups as $id => $backup) {
             $data[] = [

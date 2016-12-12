@@ -2,19 +2,23 @@
 
 namespace Pantheon\Terminus\Commands\Tag;
 
-use Consolidation\OutputFormatters\StructuredData\AssociativeList;
+use Consolidation\OutputFormatters\StructuredData\PropertyList;
 use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
 
+/**
+ * Class ListCommand
+ * @package Pantheon\Terminus\Commands\Tag
+ */
 class ListCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
 
     /**
-     * Lists the tags which an organization has added to a site
+     * List the tags which an organization has added to a site
      *
-     * @authorized
+     * @authorize
      *
      * @command tag:list
      * @aliases tags
@@ -22,15 +26,15 @@ class ListCommand extends TerminusCommand implements SiteAwareInterface
      * @param string $site_name The name or UUID of a site to list the tags of
      * @param string $organization The name or UUID of an organization which has tagged this site
      *
-     * @return AssociativeList
+     * @return PropertyList
      *
-     * @usage terminus tag:list <site_name> <org_name>
-     *    Lists the tags which the <org_name> organization has added to the <site_name> site
+     * @usage terminus tag:list <site> <org>
+     *    Lists the tags which the <org> organization has added to the <site> site
      */
     public function listTags($site_name, $organization)
     {
         $org = $this->session()->getUser()->getOrgMemberships()->get($organization)->getOrganization();
-        $site = $org->getSiteMemberships()->get($site_name)->site;
+        $site = $org->getSiteMemberships()->get($site_name)->getSite();
         $tags = $site->tags->ids();
         if (empty($tags)) {
             $this->log()->notice(
@@ -38,6 +42,6 @@ class ListCommand extends TerminusCommand implements SiteAwareInterface
                 ['org' => $org->get('profile')->name, 'site' => $site->get('name'),]
             );
         }
-        return new AssociativeList($tags);
+        return new PropertyList($tags);
     }
 }

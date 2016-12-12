@@ -7,30 +7,36 @@ use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
 
+/**
+ * Class DNSCommand
+ * @package Pantheon\Terminus\Commands\Domain
+ */
 class DNSCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
 
     /**
-     * Displays the recommended DNS settings for this environment
+     * Displays recommended DNS settings for the environment.
+     *
+     * @authorize
      *
      * @command domain:dns
      *
-     * @param string $site_env Site & environment to get DNS settings for, in the form `site-name.env`.
+     * @field-labels
+     *     name: Name
+     *     type: Record Type
+     *     value: Value
      * @return RowsOfFields
      *
-     * @field-labels
-     *   name: Name
-     *   type: Record Type
-     *   value: Value
+     * @param string $site_env Site & environment in the format `site-name.env`
      *
-     * @usage terminus domain:dns <site_name>.<env_id>
-     *     Displays the recommended DNS settings for the <site_name> site's <env_id> environment
+     * @usage terminus domain:dns <site>.<env>
+     *     Displays recommended DNS settings for <site>'s <env> environment.
      */
     public function getRecommendations($site_env)
     {
         list(, $env) = $this->getSiteEnv($site_env);
-        $domains = $env->hostnames->setHydration('recommendations')->all();
+        $domains = $env->getDomains()->setHydration('recommendations')->all();
         $settings = [];
         foreach ($domains as $domain) {
             $settings = array_merge(

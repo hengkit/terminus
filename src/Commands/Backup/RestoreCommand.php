@@ -5,41 +5,45 @@ namespace Pantheon\Terminus\Commands\Backup;
 use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
-use Terminus\Exceptions\TerminusException;
-use Terminus\Exceptions\TerminusNotFoundException;
+use Pantheon\Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Exceptions\TerminusNotFoundException;
 
+/**
+ * Class RestoreCommand
+ * @package Pantheon\Terminus\Commands\Backup
+ */
 class RestoreCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
 
     /**
-     * Restores a specific backup or a latest backup
+     * Restores a specific backup or the latest backup.
      *
-     * @authorized
+     * @authorize
      *
      * @command backup:restore
      *
-     * @param string $site_env Site & environment to deploy to, in the form `site-name.env`.
-     * @option string $file [filename.tgz] Name of the backup archive file
-     * @option string $element [code|files|database|db] Backup type
+     * @param string $site_env Site & environment in the format `site-name.env`
+     * @option string $file [filename.tgz] Name of backup file
+     * @option string $element [code|files|database|db] Backup element
      * @throws TerminusException
      *
-     * @usage terminus backup:restore awesome-site.dev
-     *     Restores the most recent backup of any type to the dev environment of awesome-site
-     * @usage terminus backup:restore awesome-site.dev --file=awesome-site_dev_2016-08-18T23-16-20_UTC_code.tar.gz
-     *     Restores backup with the specified archive file name to awesome-site's dev environment
-     * @usage terminus backup:restore awesome-site.dev --element=code
-     *     Restores the most recent code backup for the dev environment of awesome-site
+     * @usage terminus backup:restore <site>.<env>
+     *     Restores the most recent backup of any type to <site>'s <env> environment.
+     * @usage terminus backup:restore <site>.<env> --file=<backup>
+     *     Restores backup with the <backup> file name to <site>'s <env> environment.
+     * @usage terminus backup:restore <site>.<env> --element=<element>
+     *     Restores the most recent <element> backup to <site>'s <env> environment.
      */
     public function restoreBackup($site_env, array $options = ['file' => null, 'element' => null,])
     {
         list($site, $env) = $this->getSiteEnv($site_env);
 
         if (isset($options['file']) && !is_null($file_name = $options['file'])) {
-            $backup = $env->backups->getBackupByFileName($file_name);
+            $backup = $env->getBackups()->getBackupByFileName($file_name);
         } else {
             $element = ($options['element'] == 'db') ? 'database' : $options['element'];
-            $backups = $env->backups->getFinishedBackups($element);
+            $backups = $env->getBackups()->getFinishedBackups($element);
             if (empty($backups)) {
                 throw new TerminusNotFoundException(
                     'No backups available. Create one with `terminus backup:create {site}.{env}`',

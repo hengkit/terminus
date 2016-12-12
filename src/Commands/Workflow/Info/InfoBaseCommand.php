@@ -6,12 +6,16 @@ use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
 
+/**
+ * Class InfoBaseCommand
+ * @package Pantheon\Terminus\Commands\Workflow\Info
+ */
 abstract class InfoBaseCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
 
     /**
-     * Get the Workflow object.
+     * Get the Workflow object
      *
      * @param string $site_id     UUID or name of the site to get a workflow of
      * @param string $workflow_id The UUID of a specific workflow to retrieve
@@ -20,10 +24,10 @@ abstract class InfoBaseCommand extends TerminusCommand implements SiteAwareInter
     protected function getWorkflow($site_id, $workflow_id = null)
     {
         $site = $this->getSite($site_id);
-        $workflows = $site->workflows->fetch(['paged' => false,])->all();
+        $workflows = $site->getWorkflows()->fetch(['paged' => false,])->all();
 
         if (!is_null($workflow_id)) {
-            $workflow = $site->workflows->get($workflow_id);
+            $workflow = $site->getWorkflows()->get($workflow_id);
         } else {
             $workflow = array_shift($workflows);
             $this->log()->notice('Showing latest workflow on {site}.', ['site' => $site_id,]);

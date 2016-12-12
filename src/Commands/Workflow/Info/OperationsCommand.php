@@ -4,10 +4,17 @@ namespace Pantheon\Terminus\Commands\Workflow\Info;
 
 use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 
+/**
+ * Class OperationsCommand
+ * @package Pantheon\Terminus\Commands\Workflow\Info
+ */
 class OperationsCommand extends InfoBaseCommand
 {
     /**
-     * Show operation data for a workflow.
+     * Show operation data for a workflow
+     * Note: Operation descriptions only exist for Quicksilver operations and the column will be otherwise blank.
+     *
+     * @authorize
      *
      * @command workflow:info:operations
      *
@@ -17,14 +24,14 @@ class OperationsCommand extends InfoBaseCommand
      *
      * @field-labels
      *   type: Type
-     *   description: Operation Description
      *   result: Result
      *   duration: Duration
+     *   description: Operation Description
      *
-     * @usage terminus workflow:info:operations <site_name> <workflow_id>
-     *   Show the operations of the workflow with ID <workflow_id> found on site <site_name>.
-     * @usage terminus workflow:info:operations <site_name>
-     *   Show the operations of the most recent workflow found on site <site_name>.
+     * @usage terminus workflow:info:operations <site> --id=<workflow>
+     *   Shows the operations of the workflow identified by <workflow> found on <site>
+     * @usage terminus workflow:info:operations <site>
+     *   Shows the operations of the most recent workflow found on <site>
      */
     public function operations($site_id, $options = ['id' => null,])
     {

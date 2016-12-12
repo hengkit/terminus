@@ -5,16 +5,20 @@ namespace Pantheon\Terminus\Commands\Site\Org;
 use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
-use Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Exceptions\TerminusException;
 
+/**
+ * Class RemoveCommand
+ * @package Pantheon\Terminus\Commands\Site\Org
+ */
 class RemoveCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
 
     /**
-     * Removes a supporting organization from a site.
+     * Remove a supporting organization from a site
      *
-     * @authorized
+     * @authorize
      *
      * @command site:org:remove
      * @aliases site:org:rm
@@ -22,17 +26,17 @@ class RemoveCommand extends TerminusCommand implements SiteAwareInterface
      * @param string $site The UUID or name of the site to be remove the organization from
      * @param string $organization The name or UUID of the organization to remove
      *
-     * @throws \Terminus\Exceptions\TerminusException
-     * @throws \Terminus\Exceptions\TerminusNotFoundException
+     * @throws TerminusException
+     *
      * @usage terminus site:org:remove <site> <organization>
      *   Removes <organization> as a supporting organization of <site>
      */
-    public function removeOrgFromSite($site, $organization)
+    public function remove($site, $organization)
     {
         $org = $this->session()->getUser()->getOrgMemberships()->get($organization)->getOrganization();
         $site = $this->getSite($site);
 
-        if ($membership = $site->org_memberships->get($organization)) {
+        if ($membership = $site->getOrganizationMemberships()->get($organization)) {
             $workflow = $membership->delete();
             $this->log()->notice(
                 'Removing {org} as a supporting organization from {site}.',

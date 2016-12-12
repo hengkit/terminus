@@ -1,33 +1,74 @@
 <?php
+
 namespace Pantheon\Terminus\Commands\Env;
 
-use Pantheon\Terminus\Commands\CloneCommand;
+use Pantheon\Terminus\Commands\TerminusCommand;
+use Pantheon\Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Site\SiteAwareInterface;
+use Pantheon\Terminus\Site\SiteAwareTrait;
 
-class CloneContentCommand extends CloneCommand
+/**
+ * Class CloneContentCommand
+ * @package Pantheon\Terminus\Commands\Env
+ */
+class CloneContentCommand extends TerminusCommand implements SiteAwareInterface
 {
+    use SiteAwareTrait;
 
     /**
-     * Clones content from one environment to another.
+     * Clones database/files from one environment to another environment.
+     *
+     * @authorize
      *
      * @command env:clone-content
      *
-     * @usage terminus env:clone-content my-site.live dev
-     *   Clones the files and database from the live environment of the 'my-site'
-     *   site to the development environment of the 'my-site' site.
-     *
-     * @param string $originSite The origin site/env to clone content from.
-     * @param string $targetEnv The target environment to clone content to.
-     *
+     * @param string $site_env Origin site & environment in the format `site-name.env`
+     * @param string $target_env Target environment
      * @param array $options
+     * @option bool $db-only Only clone database
+     * @option bool $files-only Only clone files
      *
-     * @option bool $db-only
-     * @option bool $files-only
+     * @throws \Pantheon\Terminus\Exceptions\TerminusException
+     *
+     * @usage terminus env:clone-content <site>.<env> <target_env>
+     *   Clones database and files from <site>'s <env> environment to <target_env> environment.
+     * @usage terminus env:clone-content <site>.<env> <target_env> --db-only
+     *   Clones only the database from <site>'s <env> environment to <target_env> environment.
+     * @usage terminus env:clone-content <site>.<env> <target_env> --files-only
+     *   Clones only files from <site>'s <env> environment to <target_env> environment.
      */
-    public function cloneContent($originSite, $targetEnv, array $options = [
-        'db-only' => false,
-        'files-only' => false,
-    ])
+    public function cloneContent($site_env, $target_env, array $options = ['db-only' => false, 'files-only' => false,])
     {
-        $this->invokeClone($originSite, $targetEnv, $options);
+        if (!empty($options['db-only']) && !empty($options['files-only'])) {
+            throw new TerminusException("You cannot specify both --db-only and --files-only");
+        }
+
+        list($site, $env) = $this->getSiteEnv($site_env);
+        $from_name = $env->getName();
+        $target = $site->getEnvironments()->get($target_env);
+
+        if (empty($options['db-only'])) {
+            $workflow = $target->cloneFiles($from_name);
+            $this->log()->notice(
+                "Cloning files from {from_name} environment to {target_env} environment",
+                compact(['from_name', 'target_env'])
+            );
+            while (!$workflow->checkProgress()) {
+                // @TODO: Add Symfony progress bar to indicate that something is happening.
+            }
+            $this->log()->notice($workflow->getMessage());
+        }
+
+        if (empty($options['files-only'])) {
+            $workflow = $target->cloneDatabase($from_name);
+            $this->log()->notice(
+                "Cloning database from {from_name} environment to {target_env} environment",
+                compact(['from_name', 'target_env'])
+            );
+            while (!$workflow->checkProgress()) {
+                // @TODO: Add Symfony progress bar to indicate that something is happening.
+            }
+            $this->log()->notice($workflow->getMessage());
+        }
     }
 }

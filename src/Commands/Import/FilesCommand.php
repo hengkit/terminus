@@ -5,30 +5,38 @@ namespace Pantheon\Terminus\Commands\Import;
 use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
-use Terminus\Exceptions\TerminusException;
 
+/**
+ * Class FilesCommand
+ * @package Pantheon\Terminus\Commands\Import
+ */
 class FilesCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
+
     /**
-     * Imports a site archive onto a Pantheon site
+     * Imports a database archive to the environment.
      *
-     * @authorized
+     * @authorize
      *
-     * @command files
-     * @aliases import:files
+     * @command import:files
      *
-     * @param string $sitename Name of the site to import to
-     * @param string $url  URL at which the import archive exists
-     * @usage terminus import:files <site_name> <archive_url>
-     *   Imports the database in the archive URL to the named site.
+     * @param string $site_env Site & environment in the format `site-name.env`
+     * @param string $url Publicly accessible URL of the database archive
+     *
+     * @usage terminus import:files <site>.<env> <archive_url>
+     *     Imports the files in the archive at <archive_url> to <site>'s <env> environment.
      */
-    public function importFiles($sitename, $url)
+    public function import($site_env, $url)
     {
-        $site = $sitename;
-        list(, $env) = $this->getSiteEnv($site, 'dev');
+        list($site, $env) = $this->getSiteEnv($site_env);
         $workflow = $env->importFiles($url);
-        $workflow->wait();
-        $this->log()->notice('Importing files to "dev"');
+        while (!$workflow->checkProgress()) {
+            // @TODO: Add Symfony progress bar to indicate that something is happening.
+        }
+        $this->log()->notice(
+            'Imported files to {site}.{env}.',
+            ['site' => $site->get('name'), 'env' => $env->id,]
+        );
     }
 }

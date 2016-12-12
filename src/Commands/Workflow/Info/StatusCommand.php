@@ -2,18 +2,20 @@
 
 namespace Pantheon\Terminus\Commands\Workflow\Info;
 
-use Consolidation\OutputFormatters\StructuredData\AssociativeList;
+use Consolidation\OutputFormatters\StructuredData\PropertyList;
 
+/**
+ * Class StatusCommand
+ * @package Pantheon\Terminus\Commands\Workflow\Info
+ */
 class StatusCommand extends InfoBaseCommand
 {
     /**
-     * Show status information about a specific workflow.
+     * Show status information about a workflow
+     *
+     * @authorize
      *
      * @command workflow:info:status
-     *
-     * @param string $site_id Name or ID of the site that the workflow is part of
-     * @option string $id UUID of the workflow to show
-     * @return AssociativeList
      *
      * @field-labels
      *   id: Workflow ID
@@ -21,17 +23,23 @@ class StatusCommand extends InfoBaseCommand
      *   workflow: Workflow
      *   user: User
      *   status: Status
-     *   time: Time
+     *   started_at: Started At
+     *   finished_at: Finished At
+     *   time: Time Elapsed
+     * @return PropertyList
      *
-     * @usage terminus workflow:info:operations <site_name> <workflow_id>
-     *   Show the status of the workflow with ID <workflow_id> found on site <site_name>.
-     * @usage terminus workflow:info:operations <site_name>
-     *   Show the status of the most recent workflow found on site <site_name>.
+     * @param string $site_id Name or ID of the site that the workflow is part of
+     * @option string $id UUID of the workflow to show
+     *
+     * @usage terminus workflow:info:operations <site> <workflow>
+     *   Shows the status of the workflow identified by <workflow> found on <site>
+     * @usage terminus workflow:info:operations <site>
+     *   Shows the status of the most recent workflow found on <site>
      */
     public function status($site_id, $options = ['id' => null,])
     {
         $workflow_data = $this->getWorkflow($site_id, $options['id'])->serialize();
         unset($workflow_data['operations']);
-        return new AssociativeList($workflow_data);
+        return new PropertyList($workflow_data);
     }
 }

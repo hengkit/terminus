@@ -7,34 +7,41 @@ use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
 
+/**
+ * Class ListCommand
+ * @package Pantheon\Terminus\Commands\Env
+ */
 class ListCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
 
     /**
-     * List a site's environments
+     * Displays a list of the site's environments.
      *
-     * @authorized
+     * @authorize
      *
      * @command env:list
+     * @aliases envs
      *
      * @field-labels
-     *   id: ID
-     *   created: Created
-     *   domain: Domain
-     *   connection_mode: Connection Mode
-     *   locked: Locked
-     *   initialized: Initialized
+     *     id: ID
+     *     created: Created
+     *     domain: Domain
+     *     connection_mode: Connection Mode
+     *     locked: Locked
+     *     initialized: Initialized
+     * @return RowsOfFields
      *
-     * @param string $site_id The site to the environments for
+     * @param string $site_id Site name
      *
-     * @return \Consolidation\OutputFormatters\StructuredData\RowsOfFields
+     * @usage env:list <site>
+     *    Displays a list of <site>'s environments.
      */
     public function listEnvs($site_id)
     {
         $site = $this->getSite($site_id);
         $data = [];
-        foreach ($site->environments->all() as $env) {
+        foreach ($site->getEnvironments()->all() as $env) {
             $data[] = $env->serialize();
         }
         return new RowsOfFields($data);

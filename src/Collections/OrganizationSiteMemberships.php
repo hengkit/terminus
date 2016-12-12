@@ -2,12 +2,14 @@
 
 namespace Pantheon\Terminus\Collections;
 
-use League\Container\ContainerAwareInterface;
-use League\Container\ContainerAwareTrait;
 use Pantheon\Terminus\Models\Organization;
-use Terminus\Exceptions\TerminusException;
-use Terminus\Exceptions\TerminusNotFoundException;
+use Pantheon\Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Exceptions\TerminusNotFoundException;
 
+/**
+ * Class OrganizationSiteMemberships
+ * @package Pantheon\Terminus\Collections
+ */
 class OrganizationSiteMemberships extends TerminusCollection
 {
     /**
@@ -65,7 +67,7 @@ class OrganizationSiteMemberships extends TerminusCollection
             return $models[$id];
         }
         foreach ($models as $key => $membership) {
-            if (in_array($id, [$membership->site->id, $membership->site->get('name')])) {
+            if (in_array($id, [$membership->getSite()->id, $membership->getSite()->get('name')])) {
                 return $membership;
             }
         }
@@ -101,7 +103,7 @@ class OrganizationSiteMemberships extends TerminusCollection
                 ['id' => $site_id,]
             );
         }
-        return $membership->site;
+        return $membership->getSite();
     }
 
     /**

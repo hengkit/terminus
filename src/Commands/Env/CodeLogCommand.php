@@ -7,33 +7,38 @@ use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
 use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 
+/**
+ * Class CodeLogCommand
+ * @package Pantheon\Terminus\Commands\Env
+ */
 class CodeLogCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
 
     /**
-     * Show an environment's code log.
+     * Displays the code log for the environment.
+     *
+     * @authorize
      *
      * @command env:code-log
      *
-     * @param string $site_env Site & environment to show log for.
-     *
+     * @field-labels
+     *     time: Timestamp
+     *     author: Author
+     *     labels: Labels
+     *     hash: Commit ID
+     *     message: Message
      * @return RowsOfFields
      *
-     * @field-labels
-     *   time: Timestamp
-     *   author: Author
-     *   labels: Labels
-     *   hash: Commit ID
-     *   message: Message
+     * @param string $site_env Site & environment in the format `site-name.env`
      *
-     * @usage terminus env:code-log my-site.dev
-     *   Show code log for the `dev` environment for site `my-site`.
+     * @usage terminus env:code-log <site>.<env>
+     *     Displays the code log for <site>'s <env> environment.
      */
     public function codeLog($site_env)
     {
         list(, $env) = $this->getSiteEnv($site_env, 'dev');
-        $logs = $env->commits->all();
+        $logs = $env->getCommits()->all();
         $data = [];
         foreach ($logs as $log) {
             $data[] = [

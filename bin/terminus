@@ -1,6 +1,14 @@
 #!/usr/bin/env php
 <?php
 
+/**
+ * This script runs Terminus. It does the following:
+ *   - Includes the Composer autoload file
+ *   - Starts a container with the input, output, application, and configuration objects
+ *   - Starts a runner instance and runs the command
+ *   - Exits with a status code
+ */
+
 $phar_path = \Phar::running(true);
 if ($phar_path) {
     include_once "$phar_path/vendor/autoload.php";
@@ -12,23 +20,28 @@ if ($phar_path) {
     }
 }
 
-use Pantheon\Terminus\Config;
-use Pantheon\Terminus\Runner;
 use Pantheon\Terminus\Terminus;
-use Robo\Robo;
+use Pantheon\Terminus\Config\DefaultsConfig;
+use Pantheon\Terminus\Config\DotEnvConfig;
+use Pantheon\Terminus\Config\EnvConfig;
+use Pantheon\Terminus\Config\YamlConfig;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\ConsoleOutput;
 
-// Initializing the Terminus application
-$config = new Config();
-$application = new Terminus('Terminus', $config->get('version'), $config);
-
-// Configuring the dependency-injection container
+// Create the input and output objects for Terminus to run against.
 $input = new ArgvInput($_SERVER['argv']);
 $output = new ConsoleOutput();
-$container = Robo::createDefaultContainer($input, $output, $application, $config);
+
+// Create a config object.
+$config = new DefaultsConfig();
+$config->extend(new YamlConfig($config->get('root') . '/config/constants.yml'));
+$config->extend(new YamlConfig($config->get('user_home') . '/.terminus/config.yml'));
+$config->extend(new DotEnvConfig(getcwd()));
+$config->extend(new EnvConfig());
 
 // Running Terminus
-$runner = new Runner($container);
-$status_code = $runner->run($input, $output);
+// @TODO: Figure out if and why we need to pass input/output twice and define what happens if we
+// use different objects for each call.
+$terminus = new Terminus($config, $input, $output);
+$status_code = $terminus->run($input, $output);
 exit($status_code);

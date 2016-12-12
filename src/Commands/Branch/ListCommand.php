@@ -7,22 +7,31 @@ use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
 
+/**
+ * Class ListCommand
+ * @package Pantheon\Terminus\Commands\Branch
+ */
 class ListCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
 
     /**
-     * List the git branches for a site.
+     * Displays list of git branches for a site.
+     *
+     * @authorize
      *
      * @command branch:list
-     *
-     * @param string $site_id The name of the site.
+     * @aliases branches
      *
      * @field-labels
-     *   id: ID
-     *   sha: SHA
+     *     id: ID
+     *     sha: SHA
+     * @return RowsOfFields
      *
-     * @return \Pantheon\Terminus\Commands\Branch\RowsOfFields
+     * @param string $site_id Site name
+     *
+     * @usage terminus branch:list <site>
+     *     Displays a list of Git branches within <site>'s Pantheon remote repository.
      */
     public function listBranches($site_id)
     {
@@ -31,7 +40,7 @@ class ListCommand extends TerminusCommand implements SiteAwareInterface
             function ($branch) {
                 return $branch->serialize();
             },
-            $site->branches->all()
+            $site->getBranches()->all()
         );
         return new RowsOfFields($branches);
     }

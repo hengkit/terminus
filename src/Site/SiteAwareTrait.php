@@ -2,13 +2,13 @@
 
 namespace Pantheon\Terminus\Site;
 
-use Terminus\Collections\Sites;
-use Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Models\Site;
+use Pantheon\Terminus\Collections\Sites;
+use Pantheon\Terminus\Exceptions\TerminusException;
 
 /**
- * Implements the SiteAwareInterface for dependency injection of the Sites collection.
- *
  * Class SiteAwareTrait
+ * Implements the SiteAwareInterface for dependency injection of the Sites collection.
  * @package Pantheon\Terminus\Site
  */
 trait SiteAwareTrait
@@ -54,7 +54,7 @@ trait SiteAwareTrait
      * @param string  $site_env_id The site/environment id in the form <site>[.<env>]
      * @param string  $default_env The default environment to use if none is specified
      * @return array  The site and environment in an array.
-     * @throws \Terminus\Exceptions\TerminusException
+     * @throws \Pantheon\Terminus\Exceptions\TerminusException
      */
     public function getSiteEnv($site_env_id, $default_env = null)
     {
@@ -66,7 +66,7 @@ trait SiteAwareTrait
         }
 
         $site = $this->getSite($site_id);
-        $env = $site->environments->get($env_id);
+        $env = $site->getEnvironments()->get($env_id);
         return [$site, $env];
     }
 
@@ -85,7 +85,7 @@ trait SiteAwareTrait
         list($site_id, $env_id) = array_pad(explode('.', $site_env_id), 2, null);
 
         $site = $this->getSite($site_id);
-        $env = !empty($env_id) ? $site->environments->get($env_id) : null;
+        $env = !empty($env_id) ? $site->getEnvironments()->get($env_id) : null;
         return [$site, $env];
     }
 }

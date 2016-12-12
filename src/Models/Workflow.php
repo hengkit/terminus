@@ -6,9 +6,12 @@ use League\Container\ContainerAwareInterface;
 use League\Container\ContainerAwareTrait;
 use Pantheon\Terminus\Session\SessionAwareInterface;
 use Pantheon\Terminus\Session\SessionAwareTrait;
-use Terminus\Exceptions\TerminusException;
-use Terminus\Session;
+use Pantheon\Terminus\Exceptions\TerminusException;
 
+/**
+ * Class Workflow
+ * @package Pantheon\Terminus\Models
+ */
 class Workflow extends TerminusModel implements ContainerAwareInterface, SessionAwareInterface
 {
     use ContainerAwareTrait;
@@ -76,7 +79,7 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
 
         // Determine the url based on the workflow owner.
         switch (get_class($this->owner)) {
-            case 'Terminus\Models\Environment':
+            case 'Pantheon\Terminus\Models\Environment':
                 $this->environment = $this->owner;
                 $this->url = sprintf(
                     'sites/%s/workflows/%s',
@@ -94,7 +97,7 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
                     $this->id
                 );
                 break;
-            case 'Terminus\Models\Site':
+            case 'Pantheon\Terminus\Models\Site':
                 $this->site = $this->owner;
                 $this->url = sprintf(
                     'sites/%s/workflows/%s',
@@ -215,9 +218,10 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
             'user' => $user,
             'status' => $this->getStatus(),
             'time' => sprintf("%ds", $elapsed_time),
+            'finished_at' => $this->get('finished_at'),
+            'started_at' => $this->get('started_at'),
             'operations' => $operations_data,
         ];
-
         return $data;
     }
 
@@ -260,7 +264,7 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
      * period to prevent flooding the API with requests.
      *
      * @return bool Whether the workflow is finished or not
-     * @throws \Terminus\Exceptions\TerminusException
+     * @throws \Pantheon\Terminus\Exceptions\TerminusException
      */
     public function checkProgress()
     {
@@ -282,7 +286,7 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
      * Get the success message of a workflow or throw an exception of the workflow failed.
      *
      * @return string The message to output to the user
-     * @throws \Terminus\Exceptions\TerminusException
+     * @throws \Pantheon\Terminus\Exceptions\TerminusException
      */
     public function getMessage()
     {

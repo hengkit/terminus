@@ -2,8 +2,12 @@
 
 namespace Pantheon\Terminus\Models;
 
-use Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Exceptions\TerminusException;
 
+/**
+ * Class MachineToken
+ * @package Pantheon\Terminus\Models
+ */
 class MachineToken extends TerminusModel
 {
 
@@ -22,7 +26,7 @@ class MachineToken extends TerminusModel
     /**
      * Deletes machine token
      * @return void
-     * @throws \Terminus\Exceptions\TerminusException
+     * @throws \Pantheon\Terminus\Exceptions\TerminusException
      */
     public function delete()
     {

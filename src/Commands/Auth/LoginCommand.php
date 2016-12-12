@@ -3,24 +3,29 @@
 namespace Pantheon\Terminus\Commands\Auth;
 
 use Pantheon\Terminus\Commands\TerminusCommand;
-use Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Exceptions\TerminusException;
 
+/**
+ * Class LoginCommand
+ * @package Pantheon\Terminus\Commands\Auth
+ */
 class LoginCommand extends TerminusCommand
 {
-
     /**
-     * Logs a user into Pantheon
+     * Logs in a user to Pantheon.
      *
      * @command auth:login
      * @aliases login
      *
-     * @option machine-token A machine token to be saved for future logins
-     * @usage terminus auth:login --machine-token=111111111111111111111111111111111111111111111
-     *   Logs in the user granted machine token "111111111111111111111111111111111111111111111"
+     * @option machine-token Grants access for a user and is saved for future logins
+     * @option email Uses an existing machine token for this user
+     *
+     * @usage terminus auth:login --machine-token=<machine_token>
+     *     Logs in a user granted the machine token <machine_token>.
      * @usage terminus auth:login
-     *   Logs in your user with a previously saved machine token
-     * @usage terminus auth:login --email=<email_address>
-     *   Logs in your user with a previously saved machine token belonging to the account linked to the given email
+     *     Logs in a user with a previously saved machine token.
+     * @usage terminus auth:login --email=<email>
+     *     Logs in a user with a previously saved machine token belonging to <email>.
      */
     public function logIn(array $options = ['machine-token' => null, 'email' => null,])
     {

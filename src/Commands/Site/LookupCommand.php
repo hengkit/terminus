@@ -2,7 +2,7 @@
 
 namespace Pantheon\Terminus\Commands\Site;
 
-use Consolidation\OutputFormatters\StructuredData\AssociativeList;
+use Consolidation\OutputFormatters\StructuredData\PropertyList;
 
 /**
  * Class LookupCommand
@@ -11,9 +11,9 @@ use Consolidation\OutputFormatters\StructuredData\AssociativeList;
 class LookupCommand extends SiteCommand
 {
     /**
-     * Looks up a site name
+     * Look up a site by its name
      *
-     * @authorized
+     * @authorize
      *
      * @command site:lookup
      *
@@ -21,17 +21,17 @@ class LookupCommand extends SiteCommand
      *   id: ID
      *   name: Name
      * @default-string-field id
+     * @return PropertyList
+     *
      * @param string $site_name Name of a site to look up
-     * @usage terminus site:lookup <site_name>
-     *   * Responds with the UUID of a site if it exists and you have access to it
-     *   * Responds that you are forbidden if you access a site that exists
-     *      but you do not have access to it
-     *   * Responds that a site does not exist
-     * @return AssociativeList
+     *
+     * @usage terminus site:lookup <site>
+     *   * Responds with the UUID of <site> if it exists and you have access to it
+     *   * Responds that you are forbidden if you access <site>, which exists, but you do not have access to it
+     *   * Responds that <site> does not exist
      */
     public function lookup($site_name)
     {
-        $response = (array)$this->sites()->findUuidByName($site_name);
-        return new AssociativeList($response);
+        return new PropertyList((array)$this->sites()->findUuidByName($site_name));
     }
 }

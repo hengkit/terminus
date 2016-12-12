@@ -1,0 +1,47 @@
+<?php
+
+namespace Pantheon\Terminus\Commands\Import;
+
+use Pantheon\Terminus\Commands\TerminusCommand;
+use Pantheon\Terminus\Site\SiteAwareInterface;
+use Pantheon\Terminus\Site\SiteAwareTrait;
+use Pantheon\Terminus\Exceptions\TerminusException;
+
+/**
+ * Class SiteCommand
+ * @package Pantheon\Terminus\Commands\Import
+ */
+class SiteCommand extends TerminusCommand implements SiteAwareInterface
+{
+    use SiteAwareTrait;
+
+    /**
+     *  Imports a site archive (code, database, and files) to the site.
+     *
+     * @authorize
+     *
+     * @command import:site
+     * @aliases site:import import
+     *
+     * @option string $site Site name
+     * @option string $url Publicly accessible URL of the site archive
+     *
+     * @usage terminus import <site> <archive_url>
+     *   Imports the site archive at <archive_url> to <site>.
+     */
+    public function import($sitename, $url)
+    {
+        $site = $sitename;
+        list(, $env) = $this->getSiteEnv($site, 'dev');
+        $workflow = $env->import($url);
+        try {
+            $workflow->wait();
+        } catch (\Exception $e) {
+            if ($e->getMessage() == 'Successfully queued import_site') {
+                throw new TerminusException('Site import failed');
+            }
+            throw $e;
+        }
+        $this->log()->notice('Imported site onto Pantheon');
+    }
+}

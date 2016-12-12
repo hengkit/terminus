@@ -6,9 +6,13 @@ use League\Container\ContainerAwareInterface;
 use League\Container\ContainerAwareTrait;
 use Pantheon\Terminus\Request\RequestAwareInterface;
 use Pantheon\Terminus\Request\RequestAwareTrait;
-use Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Exceptions\TerminusException;
 use Pantheon\Terminus\Request;
 
+/**
+ * Class TerminusCollection
+ * @package Pantheon\Terminus\Collections
+ */
 abstract class TerminusCollection implements RequestAwareInterface, ContainerAwareInterface
 {
     use RequestAwareTrait;

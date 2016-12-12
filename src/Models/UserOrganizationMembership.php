@@ -5,6 +5,10 @@ namespace Pantheon\Terminus\Models;
 use League\Container\ContainerAwareInterface;
 use League\Container\ContainerAwareTrait;
 
+/**
+ * Class UserOrganizationMembership
+ * @package Pantheon\Terminus\Models
+ */
 class UserOrganizationMembership extends TerminusModel implements ContainerAwareInterface
 {
     use ContainerAwareTrait;
@@ -39,5 +43,13 @@ class UserOrganizationMembership extends TerminusModel implements ContainerAware
             $this->organization->memberships = [$this,];
         }
         return $this->organization;
+    }
+
+    /**
+     * @return User
+     */
+    public function getUser()
+    {
+        return $this->user;
     }
 }

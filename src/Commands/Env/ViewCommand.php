@@ -2,35 +2,37 @@
 
 namespace Pantheon\Terminus\Commands\Env;
 
+use League\Container\ContainerAwareInterface;
+use League\Container\ContainerAwareTrait;
 use Pantheon\Terminus\Commands\TerminusCommand;
+use Pantheon\Terminus\Helpers\LocalMachineHelper;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
-use Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Exceptions\TerminusException;
 
-class ViewCommand extends TerminusCommand implements SiteAwareInterface
+class ViewCommand extends TerminusCommand implements SiteAwareInterface, ContainerAwareInterface
 {
     use SiteAwareTrait;
+    use ContainerAwareTrait;
 
     /**
-     * Output the URL for an environment or open it in a browser.
+     * Displays the URL for the environment or opens the environment in a browser.
      *
-     * @authorized
+     * @authorize
      *
      * @command env:view
-     * @aliases site:view view
+     * @aliases site:view
      *
-     * @param $site_env
-     *  The site and environment to view in the form: <sitename>.<env>
-     * @option print
-     *  Output the URL only. Do not open the URL in the default browser.
-     *
-     * @usage: terminus env:view mysite.dev --print
-     *  Output the URL of the environment dev of the site mysite
-     * @usage: terminus env:view mysite.dev
-     *  Open the URL of the environment dev of the site mysite in the default browser.
-
+     * @param string $site_env Site & environment in the format `site-name.env`
+     * @option boolean $print Print URL only
      * @return string
-     * @throws \Terminus\Exceptions\TerminusException
+     *
+     * @usage: terminus env:view <site>.<env>
+     *    Opens the browser to <site>'s <env> environment.
+     * @usage: terminus env:view <site>.<env> --print
+     *    Prints the URL for <site>'s <env> environment.
+     *
+     * @throws TerminusException
      */
     public function view($site_env, $options = ['print' => false,])
     {
@@ -51,24 +53,8 @@ class ViewCommand extends TerminusCommand implements SiteAwareInterface
             return $url;
         }
 
-        // Otherwise attempt to launch it.
-        $cmd = '';
-        switch (php_uname('s')) {
-            case 'Linux':
-                $cmd = 'xdg-open';
-                break;
-            case 'Darwin':
-                $cmd = 'open';
-                break;
-            case 'Windows NT':
-                $cmd = 'start';
-                break;
-        }
-        if (!$cmd) {
-            throw new TerminusException("Terminus is unable to open a browser on this OS");
-        }
-        $command = sprintf('%s %s', $cmd, $url);
-        exec($command);
+        $this->getContainer()->get(LocalMachineHelper::class)->openUrl($url);
+
         return $url;
     }
 }

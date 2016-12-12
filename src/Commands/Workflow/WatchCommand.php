@@ -2,11 +2,14 @@
 
 namespace Pantheon\Terminus\Commands\Workflow;
 
-use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 use Pantheon\Terminus\Commands\TerminusCommand;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
 
+/**
+ * Class WatchCommand
+ * @package Pantheon\Terminus\Commands\Workflow
+ */
 class WatchCommand extends TerminusCommand implements SiteAwareInterface
 {
     use SiteAwareTrait;
@@ -14,14 +17,16 @@ class WatchCommand extends TerminusCommand implements SiteAwareInterface
     const WORKFLOWS_WATCH_INTERVAL = 5;
 
     /**
-     * Streams new and finished workflows to the console
+     * Stream new and finished workflows of the given site to the console
+     *
+     * @authorize
      *
      * @command workflow:watch
      *
-     * @param string $site_id Site name to watch workflows on.
+     * @param string $site_id Site name or UUID to watch the workflows of
      *
-     * @usage terminus workflow:watch <site_name>
-     *   Watch workflows on site <site_name>
+     * @usage terminus workflow:watch <site>
+     *   Watches the workflows of <site> until stopped
      */
     public function watch($site_id)
     {
@@ -35,14 +40,14 @@ class WatchCommand extends TerminusCommand implements SiteAwareInterface
         $finished = [];
 
         $this->log()->notice('Watching workflows...');
-        $site->workflows->fetchWithOperations();
+        $site->getWorkflows()->fetchWithOperations();
         while (true) {
-            $last_created_at  = $site->workflows->lastCreatedAt();
-            $last_finished_at = $site->workflows->lastFinishedAt();
+            $last_created_at  = $site->getWorkflows()->lastCreatedAt();
+            $last_finished_at = $site->getWorkflows()->lastFinishedAt();
             sleep(self::WORKFLOWS_WATCH_INTERVAL);
-            $site->workflows->fetchWithOperations();
+            $site->getWorkflows()->fetchWithOperations();
 
-            $workflows = $site->workflows->all();
+            $workflows = $site->getWorkflows()->all();
             foreach ($workflows as $workflow) {
                 if (($workflow->get('created_at') > $last_created_at)
                 && !in_array($workflow->id, $started)

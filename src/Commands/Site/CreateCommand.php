@@ -2,30 +2,36 @@
 
 namespace Pantheon\Terminus\Commands\Site;
 
-use Terminus\Collections\Upstreams;
-use Terminus\Models\Organization;
+use League\Container\ContainerAwareInterface;
+use League\Container\ContainerAwareTrait;
+use Pantheon\Terminus\Collections\Upstreams;
+use Pantheon\Terminus\Models\Organization;
 
 /**
  * Class CreateCommand
  * @package Pantheon\Terminus\Commands\Site
  */
-class CreateCommand extends SiteCommand
+class CreateCommand extends SiteCommand implements ContainerAwareInterface
 {
+    use ContainerAwareTrait;
+
     /**
-     * Creates a site
+     * Create a site
+     *
+     * @authorize
      *
      * @command site:create
      *
-     * @usage terminus site:create <sitename> --label <label> --upstream <upstream>
-     *   Creates a site with the listed options.
-     *
-     * @param string $site_name Machine name of the site to create
+     * @param string $site_name Machine name of the site to create (i.e. the slugified name)
      * @param string $label A human-readable label for the new site
-     * @param string $upstream_id UUID or name of the upstream product to apply
+     * @param string $upstream_id UUID or name of the upstream to use in creating this site
      * @option string $org UUID or name of the organization to which this site will belong
      *
      * @usage terminus site:create <site> <label> <upstream>
-     *   Creates a site with the name, label, and org named.
+     *   Creates a site with the name <site>, human-readable name <label>, using the upstream <upstream>
+     * @usage terminus site:create <site> <label> <upstream> --org=<org>
+     *   Creates a site with the name <site>, human-readable name <label>, using the upstream <upstream>, belonging to
+     *       the <org> organization
      */
 
     public function create($site_name, $label, $upstream_id, $options = ['org' => null,])
@@ -34,28 +40,31 @@ class CreateCommand extends SiteCommand
             'label' => $label,
             'site_name' => $site_name
         ];
+        $user = $this->session()->getUser();
 
         // Locate upstream
-        $upstreams = new Upstreams();
-        $upstream = $upstreams->get($upstream_id);
+        $upstream = $user->getUpstreams()->get($upstream_id);
 
         // Locate organization
-        if (!is_null($id = $options['org'])) {
-            $org = new Organization((object)compact('id'));
-            $org->fetch();
+        if (!is_null($org_id = $options['org'])) {
+            $org = $user->getOrganizations()->get($org_id)->fetch();
             $workflow_options['organization_id'] = $org->id;
         }
 
         // Create the site
         $this->log()->notice('Creating a new site...');
         $workflow = $this->sites->create($workflow_options);
-        $workflow->wait();
+        while (!$workflow->checkProgress()) {
+            // @TODO: Add Symfony progress bar to indicate that something is happening.
+        }
 
         // Deploy the upstream
         if ($site = $this->getSite($site_name)) {
             $this->log()->notice('Deploying CMS...');
             $workflow = $site->deployProduct($upstream->id);
-            $workflow->wait();
+            while (!$workflow->checkProgress()) {
+                // @TODO: Add Symfony progress bar to indicate that something is happening.
+            }
             $this->log()->notice('Deployed CMS');
         }
     }

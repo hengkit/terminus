@@ -12,15 +12,19 @@ use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Robo\Common\ConfigAwareTrait;
 use Robo\Contract\ConfigAwareInterface;
-use Terminus\Exceptions\TerminusException;
+use Pantheon\Terminus\Exceptions\TerminusException;
 
 /**
- * Handles requests made by terminus
+ * Class Request
+ *
+ * Handles requests made by Terminus
  *
  * This is simply a class to manage the interactions between Terminus and Guzzle
  * (the HTTP library Terminus uses). This class should eventually evolve to
  * manage all requests to external resources such. Eventually we could even log
  * requests in debug mode.
+ *
+ * @package Pantheon\Terminus\Request
  */
 class Request implements ConfigAwareInterface, SessionAwareInterface, LoggerAwareInterface
 {
