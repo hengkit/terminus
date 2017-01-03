@@ -7,7 +7,7 @@
 ---
 
 # App
-TERMINUS_VERSION:       '1.0.0-alpha'
+TERMINUS_VERSION:       '1.0.0-beta.1'
 
 # Connectivity
 TERMINUS_HOST:          'terminus.pantheon.io'
@@ -25,7 +25,7 @@ TERMINUS_TIME_ZONE:     'UTC'
 
 # File Storage
 TERMINUS_CACHE_DIR:     '[[ TERMINUS_USER_HOME ]]/.terminus/cache'
-TERMINUS_LOG_DIR:       '/tmp'
+TERMINUS_PLUGINS_DIR:   '[[ TERMINUS_USER_HOME ]]/.terminus/plugins'
 TERMINUS_TOKENS_DIR:    '[[ TERMINUS_CACHE_DIR ]]/tokens'
 TERMINUS_ASSETS_DIR:    '[[ TERMINUS_ROOT ]]/assets'
 TERMINUS_TEMPLATES_DIR: '[[ TERMINUS_ROOT ]]/templates'

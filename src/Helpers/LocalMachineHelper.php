@@ -3,6 +3,10 @@
 namespace Pantheon\Terminus\Helpers;
 
 use Pantheon\Terminus\Exceptions\TerminusException;
+use Robo\Common\ConfigAwareTrait;
+use Robo\Contract\ConfigAwareInterface;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Process\Process;
 
 /**
  * Class ShellExecHelper
@@ -11,39 +15,58 @@ use Pantheon\Terminus\Exceptions\TerminusException;
  *
  * @package Pantheon\Terminus\Helpers
  */
-class LocalMachineHelper
+class LocalMachineHelper implements ConfigAwareInterface
 {
+    use ConfigAwareTrait;
+
     /**
-     * Execute the given command on the local machine and return the last line of output
+     * @var integer The number of seconds to wait on a command until it times out
+     */
+    const TIMEOUT = 3600;
+
+    /**
+     * Executes the given command on the local machine and return the exit code and output.
      *
      * @param string $cmd The command to execute
-     * @return string The last line of the output of the executed command.
+     * @return array The command output and exit_code
      */
     public function exec($cmd)
     {
-        return exec($cmd);
+        $process = $this->getProcess($cmd);
+        $process->run();
+        return ['output' => $process->getOutput(), 'exit_code' => $process->getExitCode(),];
     }
 
     /**
-     * Execute the given command on the local machine and return the exit code and raw output
+     * Executes a buffered command.
      *
      * @param string $cmd The command to execute
-     * @return array The command output and exit_code.
+     * @param callable $callback A function to run while waiting for the process to complete
+     * @return array The command output and exit_code
      */
-    public function execRaw($cmd)
+    public function execInteractive($cmd, $callback = null)
     {
-        $exit_code = null;
-        ob_start();
-        passthru($cmd, $exit_code);
-        $output = ob_get_clean();
-        return ['output' => $output, 'exit_code' => $exit_code];
+        $process = $this->getProcess($cmd);
+        $process->setTty(true);
+        $process->start();
+        $process->wait($callback);
+        return ['output' => $process->getOutput(), 'exit_code' => $process->getExitCode(),];
     }
 
+    /**
+     * Returns a set-up filesystem object.
+     *
+     * @return Filesystem
+     */
+    public function getFilesystem()
+    {
+        return new Filesystem();
+    }
 
     /**
-     * Open the given URL in a browser on the local machine.
+     * Opens the given URL in a browser on the local machine.
      *
-     * @param $url
+     * @param $url The URL to be opened
      * @throws \Pantheon\Terminus\Exceptions\TerminusException
      */
     public function openUrl($url)
@@ -62,10 +85,57 @@ class LocalMachineHelper
                 break;
         }
         if (!$cmd) {
-            throw new TerminusException("Terminus is unable to open a browser on this OS");
+            throw new TerminusException('Terminus is unable to open a browser on this OS.');
         }
         $command = sprintf('%s %s', $cmd, $url);
 
-        $this->exec($command);
+        $this->getProcess($command)->run();
+    }
+
+    /**
+     * Reads to a file from the local system.
+     *
+     * @param string $filename Name of the file to read
+     * @return string Content read from that file
+     */
+    public function readFile($filename)
+    {
+        return file_get_contents($this->fixFilename($filename));
+    }
+
+    /**
+     * Writes to a file on the local system.
+     *
+     * @param string $filename Name of the file to write to
+     * @param string $content Content to write to the file
+     */
+    public function writeFile($filename, $content)
+    {
+        $this->getFilesystem()->dumpFile($this->fixFilename($filename), $content);
+    }
+
+    /**
+     * Accepts a filename/full path and localizes it to the user's system.
+     *
+     * @param string $filename
+     * @return string
+     */
+    protected function fixFilename($filename)
+    {
+        $config = $this->getConfig();
+        return $config->fixDirectorySeparators(str_replace('~', $config->get('user_home'), $filename));
+    }
+
+    /**
+     * Returns a set-up process object.
+     *
+     * @param string $cmd The command to execute
+     * @return Process
+     */
+    protected function getProcess($cmd)
+    {
+        $process = new Process($cmd);
+        $process->setTimeout(self::TIMEOUT);
+        return $process;
     }
 }

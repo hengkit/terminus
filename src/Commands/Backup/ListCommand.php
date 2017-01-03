@@ -53,17 +53,11 @@ class ListCommand extends TerminusCommand implements SiteAwareInterface
                 $backup_element = $element;
         }
 
-
         $backups = $env->getBackups()->getFinishedBackups($backup_element);
 
         $data = [];
         foreach ($backups as $id => $backup) {
-            $data[] = [
-                'file'      => $backup->get('filename'),
-                'size'      => $backup->getSizeInMb(),
-                'date'      => $backup->getDate(),
-                'initiator' => $backup->getInitiator(),
-            ];
+            $data[] = $backup->serialize();
         }
 
         // Return the output data.
