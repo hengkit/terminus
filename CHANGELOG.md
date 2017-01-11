@@ -1,5 +1,15 @@
-#Change Log
+# Change Log
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org)
+
+## MASTER
+### Added
+- Added `--to=` option to `backup:get` to allow specifying of a local download location. (#1520)
+- Removed framework type check from `drush` and `wp` commands. (#1521)
+
+## 1.0.0-beta.2 - 2017-01-10
+### Fixed
+- Fixed fatal error by adding back the use statement for ProcessUtils in SSHBaseCommand. (#1494)
+- Pinned PHP-VCR version to 1.3.1 due to issues with turning PUT into POST. (#1501)
 
 ## 1.0.0-beta.1 - 2016-12-21
 ### Changed
