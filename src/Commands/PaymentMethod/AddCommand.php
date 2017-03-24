@@ -25,14 +25,17 @@ class AddCommand extends TerminusCommand implements SiteAwareInterface
      * @param string $site_name Site name
      * @param string $payment_method Payment method label or UUID
      *
-     * @usage terminus payment-method:add <site> <payment_method>
-     *     Associates <payment_method> with <site>.
+     * @usage <site> <payment_method> Associates <payment_method> with <site>.
      */
     public function add($site_name, $payment_method)
     {
         $site = $this->getSite($site_name);
         $pm = $this->session()->getUser()->getPaymentMethods()->fetch()->get($payment_method);
-        $site->addPaymentMethod($pm->id)->wait();
+        $workflow = $site->addPaymentMethod($pm->id);
+        while (!$workflow->checkProgress()) {
+            // @TODO: Add Symfony progress bar to indicate that something is happening.
+        }
+
         $this->log()->notice(
             '{method} has been applied to the {site} site.',
             ['method' => $pm->get('label'), 'site' => $site->get('name'),]

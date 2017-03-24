@@ -17,10 +17,11 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
     use ContainerAwareTrait;
     use SessionAwareTrait;
 
+    public static $pretty_name = 'workflow';
     /**
      * @var TerminusModel
      */
-    protected $owner;
+    private $owner;
 
     // @TODO: Make this configurable.
     const POLLING_PERIOD = 3;
@@ -64,7 +65,7 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
     public function checkProgress()
     {
         // Fetch the workflow status from the API.
-        $this->poll();
+        $this->fetch();
         if ($this->isFinished()) {
             // If the workflow failed then figure out the correct output message and throw an exception.
             if (!$this->isSuccessful()) {
@@ -90,7 +91,7 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
         $owner = $this->getOwnerObject();
         switch (get_class($owner)) {
             case Environment::class:
-                $this->url = "sites/{$owner->site->id}/workflows/{$this->id}";
+                $this->url = "sites/{$owner->getSite()->id}/workflows/{$this->id}";
                 break;
             case Organization::class:
                 $this->url = "users/{$this->session()->getUser()->id}/organizations/{$owner->id}/workflows/{$this->id}";
@@ -179,7 +180,7 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
      */
     public function isFinished()
     {
-        return (boolean)$this->get('result');
+        return $this->has('result');
     }
 
     /**
@@ -247,16 +248,19 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
 
     /**
      * Waits on this workflow to finish
-     * @deprecated Use while($workflow->checkProgress) instead
+     *
+     * @deprecated 1.0.0 Use while($workflow->checkProgress) instead
      *
      * @return Workflow|void
      * @throws TerminusException
+     *
+     * @deprecated 1.0.1 Use checkProgress to wait on workflows
      */
     public function wait()
     {
         while (!$this->isFinished()) {
             $this->fetch();
-            sleep(3);
+            sleep(self::POLLING_PERIOD);
             /**
              * TODO: Output this to stdout so that it doesn't get mixed with any
              *   actual output. We can't use the logger here because that might be
@@ -300,22 +304,5 @@ class Workflow extends TerminusModel implements ContainerAwareInterface, Session
     public function wasFinishedAfter($timestamp)
     {
         return $this->get('finished_at') > $timestamp;
-    }
-
-    /**
-     * Fetches this object from Pantheon. Waits a given length of time between checks.
-     *
-     * @return void
-     */
-    private function poll()
-    {
-        static $last_check = 0;
-
-        // Poll for the workflow status. Don't check more often than the polling period
-        $now = time();
-        if ($last_check + Workflow::POLLING_PERIOD <= $now) {
-            $this->fetch();
-            $last_check = $now;
-        }
     }
 }

@@ -26,10 +26,8 @@ class DeleteCommand extends TerminusCommand implements SiteAwareInterface
      * @param string $site_env Site & Multidev environment in the format `site-name.env`
      * @option boolean $delete-branch Delete associated Git branch
      *
-     * @usage terminus multidev:delete <site>.<multidev>
-     *     Deletes <site>'s <multidev> Multidev environment.
-     * @usage terminus multidev:delete <site>.<multidev> --delete-branch
-     *     Deletes <site>'s <multidev> Multidev environment and deletes its associated Git branch.
+     * @usage <site>.<multidev> Deletes <site>'s <multidev> Multidev environment.
+     * @usage <site>.<multidev> --delete-branch Deletes <site>'s <multidev> Multidev environment and deletes its associated Git branch.
      */
     public function deleteMultidev($site_env, $options = ['delete-branch' => false,])
     {
@@ -39,12 +37,13 @@ class DeleteCommand extends TerminusCommand implements SiteAwareInterface
             return;
         }
 
-        $workflow = $env->delete(['delete_branch' => $options['delete-branch'],]);
-        $workflow->wait();
-        if ($workflow->isSuccessful()) {
-            $this->log()->notice('Deleted the multidev environment {env}.', ['env' => $env->id,]);
-        } else {
-            throw new TerminusException($workflow->getMessage());
+        $workflow = $env->delete(
+            ['delete_branch' => isset($options['delete-branch']) ? $options['delete-branch'] : false,]
+        );
+        while (!$workflow->checkProgress()) {
+            // @TODO: Add Symfony progress bar to indicate that something is happening.
         }
+
+        $this->log()->notice('Deleted the multidev environment {env}.', ['env' => $env->id,]);
     }
 }

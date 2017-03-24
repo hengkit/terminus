@@ -28,12 +28,11 @@ class RemoveCommand extends TerminusCommand implements SiteAwareInterface
      *
      * @throws TerminusException
      *
-     * @usage terminus site:org:remove <site> <organization>
-     *     Disassociates <organization> as a supporting organization from <site>.
+     * @usage <site> <organization> Disassociates <organization> as a supporting organization from <site>.
      */
     public function remove($site, $organization)
     {
-        $org = $this->session()->getUser()->getOrgMemberships()->get($organization)->getOrganization();
+        $org = $this->session()->getUser()->getOrganizationMemberships()->get($organization)->getOrganization();
         $site = $this->getSite($site);
 
         $membership = $site->getOrganizationMemberships()->get($organization);

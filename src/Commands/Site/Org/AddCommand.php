@@ -24,18 +24,17 @@ class AddCommand extends TerminusCommand implements SiteAwareInterface
      * @param string $site Site name
      * @param string $organization Organization name or UUID
      *
-     * @usage terminus site:org:add <organization> <site>
-     *     Associates <organization> with <site> as a supporting organization.
+     * @usage <site> <organization> Associates <organization> with <site> as a supporting organization.
      */
     public function add($site, $organization)
     {
-        $org = $this->session()->getUser()->getOrgMemberships()->get($organization)->getOrganization();
+        $org = $this->session()->getUser()->getOrganizationMemberships()->get($organization)->getOrganization();
         $site = $this->getSite($site);
 
-        $workflow = $site->getOrganizationMemberships()->create($organization, 'team_member');
+        $workflow = $site->getOrganizationMemberships()->create($org, 'team_member');
         $this->log()->notice(
             'Adding {org} as a supporting organization to {site}.',
-            ['site' => $site->getName(), 'org' => $org->getName()]
+            ['site' => $site->getName(), 'org' => $org->getName(),]
         );
         while (!$workflow->checkProgress()) {
             // @TODO: Add Symfony progress bar to indicate that something is happening.

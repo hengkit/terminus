@@ -22,10 +22,10 @@ class ListCommand extends TerminusCommand
      * @field-labels
      *     id: ID
      *     name: Name
+     *     label: Label
      * @return RowsOfFields
      *
-     * @usage terminus org:list
-     *     Displays the list of organizations.
+     * @usage Displays the list of organizations.
      */
     public function listOrgs()
     {

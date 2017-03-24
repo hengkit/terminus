@@ -3,7 +3,9 @@
 namespace Pantheon\Terminus\UnitTests\Commands\Console;
 
 use Pantheon\Terminus\Commands\Self\ConsoleCommand;
+use Pantheon\Terminus\Config\TerminusConfig;
 use Pantheon\Terminus\UnitTests\Commands\Env\EnvCommandTest;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class ConsoleCommandTest
@@ -12,6 +14,11 @@ use Pantheon\Terminus\UnitTests\Commands\Env\EnvCommandTest;
  */
 class ConsoleCommandTest extends EnvCommandTest
 {
+    /**
+     * @var TerminusConfig
+     */
+    protected $config;
+
     /**
      * @inheritdoc
      */

@@ -18,15 +18,14 @@ class RemoveCommand extends TerminusCommand
      * @command org:people:remove
      * @aliases org:people:rm org:ppl:remove org:ppl:rm
      *
-     * @param string $organization Organization name or ID
+     * @param string $organization Organization name, label, or ID
      * @param string $member User UUID, email address, or full name
      *
-     * @usage terminus org:team:remove <organization> <user>
-     *     Removes the user, <user>, from <organization>.
+     * @usage <organization> <user> Removes the user, <user>, from <organization>.
      */
     public function remove($organization, $member)
     {
-        $org = $this->session()->getUser()->getOrgMemberships()->get($organization)->getOrganization();
+        $org = $this->session()->getUser()->getOrganizationMemberships()->get($organization)->getOrganization();
         $membership = $org->getUserMemberships()->fetch()->get($member);
         $workflow = $membership->delete();
         while (!$workflow->checkProgress()) {
@@ -34,7 +33,7 @@ class RemoveCommand extends TerminusCommand
         }
         $this->log()->notice(
             '{member} has been removed from the {org} organization.',
-            ['member' => $membership->getUser()->get('profile')->full_name, 'org' => $org->get('profile')->name,]
+            ['member' => $membership->getUser()->getName(), 'org' => $org->getName(),]
         );
     }
 }

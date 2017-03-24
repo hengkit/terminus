@@ -18,16 +18,15 @@ class RoleCommand extends TerminusCommand
      * @command org:people:role
      * @aliases org:ppl:role
      *
-     * @param string $organization Organization name or ID
+     * @param string $organization Organization name, label, or ID
      * @param string $member User UUID, email address, or full name
      * @param string $role [unprivileged|admin|team_member|developer] Role
      *
-     * @usage terminus org:people:role <organization> <user> <role>
-     *     Changes the role of the user, <user>, to <role> within <organization>.
+     * @usage <organization> <user> <role> Changes the role of the user, <user>, to <role> within <organization>.
      */
     public function role($organization, $member, $role)
     {
-        $org = $this->session()->getUser()->getOrgMemberships()->get($organization)->getOrganization();
+        $org = $this->session()->getUser()->getOrganizationMemberships()->get($organization)->getOrganization();
         $membership = $org->getUserMemberships()->fetch()->get($member);
         $workflow = $membership->setRole($role);
         while (!$workflow->checkProgress()) {
@@ -36,9 +35,9 @@ class RoleCommand extends TerminusCommand
         $this->log()->notice(
             "{member}'s role has been changed to {role} in the {org} organization.",
             [
-                'member' => $membership->getUser()->get('profile')->full_name,
+                'member' => $membership->getUser()->getName(),
                 'role' => $role,
-                'org' => $org->get('profile')->name,
+                'org' => $org->getName(),
             ]
         );
     }

@@ -24,13 +24,16 @@ class RemoveCommand extends TerminusCommand implements SiteAwareInterface
      *
      * @param string $site_name Site name
      *
-     * @usage terminus payment-method:remove <site>
-     *     Disassociates the active payment method from <site>.
+     * @usage <site> Disassociates the active payment method from <site>.
      */
     public function remove($site_name)
     {
         $site = $this->getSite($site_name);
-        $site->removePaymentMethod()->wait();
+        $workflow = $site->removePaymentMethod();
+        while (!$workflow->checkProgress()) {
+            // @TODO: Add Symfony progress bar to indicate that something is happening.
+        }
+
         $this->log()->notice(
             'The payment method for the {site} site has been removed.',
             ['site' => $site->get('name'),]

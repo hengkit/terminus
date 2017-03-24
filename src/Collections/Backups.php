@@ -14,6 +14,7 @@ class Backups extends EnvironmentOwnedCollection
     const DAILY_BACKUP_TTL = 691200;
     const WEEKLY_BACKUP_TTL = 2764800;
 
+    public static $pretty_name = 'backups';
     /**
      * @var string
      */
@@ -70,17 +71,18 @@ class Backups extends EnvironmentOwnedCollection
      *
      * @param array $options params to pass configure fetching
      *        array $data Data to fill in the model members of this collection
-     * @return TerminusCollection $this
+     * @return Backups $this
      */
     public function fetch(array $options = [])
     {
         $data = isset($options['data']) ? $options['data'] : $this->getCollectionData($options);
+        $results = array_filter((array)$data);
 
-        foreach ($data as $id => $model_data) {
+        foreach ($results as $id => $model_data) {
+            if (!isset($model_data->id)) {
+                $model_data->id = $id;
+            }
             if (isset($model_data->filename)) {
-                if (!isset($model_data->id)) {
-                    $model_data->id = $id;
-                }
                 $this->add($model_data);
             }
         }
@@ -97,12 +99,7 @@ class Backups extends EnvironmentOwnedCollection
      */
     public function getBackupByFileName($filename)
     {
-        $matches = $this->getFilteredMemberList(compact('filename'), 'id', 'id');
-        try {
-            return $this->get(array_shift($matches));
-        } catch (\Exception $e) {
-            throw new TerminusNotFoundException('Cannot find a backup named {filename}.', compact('filename'));
-        }
+        return $this->get($filename);
     }
 
     /**

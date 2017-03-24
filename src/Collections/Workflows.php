@@ -2,7 +2,6 @@
 
 namespace Pantheon\Terminus\Collections;
 
-use Pantheon\Terminus\Exceptions\TerminusException;
 use Pantheon\Terminus\Models\Environment;
 use Pantheon\Terminus\Models\Organization;
 use Pantheon\Terminus\Models\Site;
@@ -20,6 +19,7 @@ class Workflows extends TerminusCollection implements SessionAwareInterface
 {
     use SessionAwareTrait;
 
+    public static $pretty_name = 'workflows';
     /**
      * @var string
      */
@@ -27,7 +27,7 @@ class Workflows extends TerminusCollection implements SessionAwareInterface
     /**
      * @var TerminusModel
      */
-    protected $owner;
+    private $owner;
 
     /**
      * Instantiates the collection, sets param members as properties
@@ -90,8 +90,7 @@ class Workflows extends TerminusCollection implements SessionAwareInterface
      */
     public function create($type, array $options = [])
     {
-        $options = array_merge(['params' => [],], $options);
-        $params = array_merge($this->args, $options['params']);
+        $params = isset($options['params']) ? $options['params'] : [];
 
         $results = $this->request()->request(
             $this->getUrl(),
@@ -132,25 +131,20 @@ class Workflows extends TerminusCollection implements SessionAwareInterface
      */
     public function getUrl()
     {
-        if (!empty($this->url)) {
-            return $this->url;
-        }
-
-        // Determine the url based on the workflow owner.
         $owner = $this->getOwnerObject();
         switch (get_class($owner)) {
             case Environment::class:
-                $this->url = "sites/{$owner->site->id}/environments/{$owner->id}/workflows";
+                $this->url = "{$owner->getUrl()}/workflows";
                 break;
             case Organization::class:
-                $this->url = "users/{$this->session()->getUser()->id}/organizations/{$owner->id}/workflows";
+                $this->url = "{$this->session()->getUser()->getUrl()}/organizations/{$owner->id}/workflows";
                 // @TODO: This should be passed in rather than read from the current session.
                 break;
             case Site::class:
                 $this->url = "sites/{$owner->id}/workflows";
                 break;
             case User::class:
-                $this->url = "users/{$owner->id}/workflows";
+                $this->url = "{$owner->getUrl()}/workflows";
                 break;
         }
         return $this->url;

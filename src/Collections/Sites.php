@@ -71,15 +71,17 @@ class Sites extends TerminusCollection implements SessionAwareInterface
         }
 
         if (!$options['team_only']) {
-            $memberships = $this->getUser()->getOrgMemberships()->fetch()->all();
+            $memberships = $this->getUser()->getOrganizationMemberships()->fetch()->all();
             if (!is_null($org_id = $options['org_id']) && ($org_id != 'all')) {
                 $memberships = array_filter($memberships, function ($membership) use ($org_id) {
                     return $membership->id == $org_id;
                 });
             }
-            foreach ($memberships as $membership) {
-                if ($membership->get('role') != 'unprivileged') {
-                    $sites[] = $membership->getOrganization()->getSites();
+            if (is_array($memberships)) {
+                foreach ($memberships as $membership) {
+                    if ($membership->get('role') != 'unprivileged') {
+                        $sites[] = $membership->getOrganization()->getSites();
+                    }
                 }
             }
         }
@@ -187,17 +189,7 @@ class Sites extends TerminusCollection implements SessionAwareInterface
                 );
             }
         } else {
-            // If we have a list of sites already then look through it for the given site.
-            if (isset($this->models[$id])) {
-                // Search by id
-                $site = $this->models[$id];
-            } else {
-                // Search by name
-                $list = $this->listing('name', 'id');
-                if (isset($list[$id])) {
-                    $site = $this->models[$list[$id]];
-                }
-            }
+            $site = parent::get($id);
         }
 
         return $site;

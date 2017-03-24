@@ -11,68 +11,60 @@ use Pantheon\Terminus\Collections\Domains;
 use Pantheon\Terminus\Collections\Loadbalancers;
 use Pantheon\Terminus\Collections\Workflows;
 use Pantheon\Terminus\Helpers\LocalMachineHelper;
+use Pantheon\Terminus\Friends\SiteInterface;
+use Pantheon\Terminus\Friends\SiteTrait;
 use Robo\Common\ConfigAwareTrait;
 use Robo\Contract\ConfigAwareInterface;
 use Pantheon\Terminus\Exceptions\TerminusException;
+use Symfony\Component\Process\ProcessUtils;
 
 /**
  * Class Environment
  * @package Pantheon\Terminus\Models
  */
-class Environment extends TerminusModel implements ConfigAwareInterface, ContainerAwareInterface
+class Environment extends TerminusModel implements ConfigAwareInterface, ContainerAwareInterface, SiteInterface
 {
     use ContainerAwareTrait;
     use ConfigAwareTrait;
+    use SiteTrait;
 
+    public static $pretty_name = 'environment';
+    /**
+     * @var string
+     */
+    protected $url = 'sites/{site_id}/environments/{id}';
     /**
      * @var Backups
      */
-    public $backups;
+    private $backups;
     /**
      * @var Bindings
      */
-    public $bindings;
+    private $bindings;
     /**
      * @var Commits
      */
-    public $commits;
+    private $commits;
     /**
      * @var Domains
      */
-    public $domains;
+    private $domains;
     /**
      * @var Loadbalancers
      */
-    public $loadbalancers;
+    private $loadbalancers;
     /**
      * @var Lock
      */
-    protected $lock;
-    /**
-     * @var Site
-     */
-    public $site;
+    private $lock;
     /**
      * @var UpstreamStatus
      */
-    public $upstream_status;
+    private $upstream_status;
     /**
      * @var Workflows
      */
-    public $workflows;
-
-    /**
-     * Object constructor
-     *
-     * @param object $attributes Attributes of this model
-     * @param array $options Options with which to configure this model
-     */
-    public function __construct($attributes, array $options = [])
-    {
-        $this->site = $options['collection']->getSite();
-        parent::__construct($attributes, $options);
-        $this->url = "sites/{$this->getSite()->id}/environments/{$this->id}";
-    }
+    private $workflows;
 
     /**
      * Apply upstream updates
@@ -378,7 +370,7 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
     public function disableHttpsCertificate()
     {
         if (!$this->settings('ssl_enabled')) {
-            throw new TerminusException('The {env} environment does not have https enabled.', ['env' => $this->id]);
+            throw new TerminusException('The {env} environment does not have https enabled.', ['env' => $this->id,]);
         }
         try {
             $this->request()->request(
@@ -413,7 +405,7 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
     public function getBackups()
     {
         if (empty($this->backups)) {
-            $this->backups = $this->getContainer()->get(Backups::class, [['environment' => $this,]]);
+            $this->backups = $this->getContainer()->get(Backups::class, [['environment' => $this,],]);
         }
         return $this->backups;
     }
@@ -424,9 +416,17 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
     public function getBindings()
     {
         if (empty($this->bindings)) {
-            $this->bindings = $this->getContainer()->get(Bindings::class, [['environment' => $this,]]);
+            $this->bindings = $this->getContainer()->get(Bindings::class, [['environment' => $this,],]);
         }
         return $this->bindings;
+    }
+
+    /**
+     * @return string
+     */
+    public function getBranchName()
+    {
+        return $this->isMultidev() ? $this->id : 'master';
     }
 
     /**
@@ -435,7 +435,7 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
     public function getCommits()
     {
         if (empty($this->commits)) {
-            $this->commits = $this->getContainer()->get(Commits::class, [['environment' => $this,]]);
+            $this->commits = $this->getContainer()->get(Commits::class, [['environment' => $this,],]);
         }
         return $this->commits;
     }
@@ -446,7 +446,7 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
     public function getDomains()
     {
         if (empty($this->domains)) {
-            $this->domains = $this->getContainer()->get(Domains::class, [['environment' => $this,]]);
+            $this->domains = $this->getContainer()->get(Domains::class, [['environment' => $this,],]);
         }
         return $this->domains;
     }
@@ -466,10 +466,10 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
      */
     public function getLoadbalancers()
     {
-        if (empty($this->workflows)) {
-            $this->workflows = $this->getContainer()->get(Loadbalancers::class, [['environment' => $this,]]);
+        if (empty($this->loadbalancers)) {
+            $this->loadbalancers = $this->getContainer()->get(Loadbalancers::class, [['environment' => $this,],]);
         }
-        return $this->workflows;
+        return $this->loadbalancers;
     }
 
     /**
@@ -480,7 +480,7 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
     public function getLock()
     {
         if (empty($this->lock)) {
-            $this->lock = $this->getContainer()->get(Lock::class, [$this->get('lock'), ['environment' => $this]]);
+            $this->lock = $this->getContainer()->get(Lock::class, [$this->get('lock'), ['environment' => $this],]);
         }
         return $this->lock;
     }
@@ -527,20 +527,12 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
     }
 
     /**
-     * @return Site
-     */
-    public function getSite()
-    {
-        return $this->site;
-    }
-
-    /**
      * @return UpstreamStatus
      */
     public function getUpstreamStatus()
     {
         if (empty($this->upstream_status)) {
-            $this->upstream_status = $this->getContainer()->get(UpstreamStatus::class, [[], ['environment' => $this,]]);
+            $this->upstream_status = $this->getContainer()->get(UpstreamStatus::class, [[], ['environment' => $this,],]);
         }
         return $this->upstream_status;
     }
@@ -551,7 +543,7 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
     public function getWorkflows()
     {
         if (empty($this->workflows)) {
-            $this->workflows = $this->getContainer()->get(Workflows::class, [['environment' => $this,]]);
+            $this->workflows = $this->getContainer()->get(Workflows::class, [['environment' => $this,],]);
         }
         return $this->workflows;
     }
@@ -650,6 +642,16 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
     }
 
     /**
+     * Is this branch a development environment?
+     *
+     * @return bool True if ths environment is a development environment
+     */
+    public function isDevelopment()
+    {
+        return !in_array($this->id, ['test', 'live',]);
+    }
+
+    /**
      * Have the environment's bindings have been initialized?
      *
      * @return bool True if environment has been instantiated
@@ -673,7 +675,7 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
      */
     public function isMultidev()
     {
-        return !in_array($this->id, ['dev', 'test', 'live']);
+        return !in_array($this->id, ['dev', 'test', 'live',]);
     }
 
     /**
@@ -733,7 +735,7 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
         $sftp = $this->sftpConnectionInfo();
         $ssh_command = vsprintf(
             'ssh -T %s@%s -p %s -o "AddressFamily inet" %s',
-            [$sftp['username'], $sftp['host'], $sftp['port'], escapeshellarg($command),]
+            [$sftp['username'], $sftp['host'], $sftp['port'], ProcessUtils::escapeArgument($command),]
         );
 
         // Catch Terminus running in test mode
@@ -786,7 +788,7 @@ class Environment extends TerminusModel implements ConfigAwareInterface, Contain
         );
 
         // The response is actually a workflow
-        return $this->getContainer()->get(Workflow::class, [$response['data'], ['environment' => $this,]]);
+        return $this->getContainer()->get(Workflow::class, [$response['data'], ['environment' => $this,],]);
     }
 
     /**

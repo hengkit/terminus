@@ -4,6 +4,8 @@ namespace Pantheon\Terminus\Models;
 
 use League\Container\ContainerAwareInterface;
 use League\Container\ContainerAwareTrait;
+use Pantheon\Terminus\Friends\OrganizationsInterface;
+use Pantheon\Terminus\Friends\OrganizationsTrait;
 use Robo\Common\ConfigAwareTrait;
 use Robo\Contract\ConfigAwareInterface;
 use Pantheon\Terminus\Collections\Branches;
@@ -17,66 +19,53 @@ use Pantheon\Terminus\Exceptions\TerminusException;
  * Class Site
  * @package Pantheon\Terminus\Models
  */
-class Site extends TerminusModel implements ConfigAwareInterface, ContainerAwareInterface
+class Site extends TerminusModel implements ConfigAwareInterface, ContainerAwareInterface, OrganizationsInterface
 {
     use ConfigAwareTrait;
     use ContainerAwareTrait;
+    use OrganizationsTrait;
 
+    public static $pretty_name = 'site';
+    /**
+     * @var string
+     */
+    protected $url = 'sites/{id}?site_state=true';
     /**
      * @var Branches
      */
-    public $branches;
+    protected $branches;
     /**
      * @var Environments
      */
-    public $environments;
+    protected $environments;
     /**
      * @var NewRelic
      */
-    public $new_relic;
+    protected $new_relic;
     /**
      * @var SiteOrganizationMemberships
      */
-    public $org_memberships;
+    protected $org_memberships;
     /**
      * @var Redis
      */
-    public $redis;
+    protected $redis;
     /**
      * @var Solr
      */
-    public $solr;
+    protected $solr;
     /**
      * @var SiteUserMemberships
      */
-    public $user_memberships;
+    protected $user_memberships;
     /**
      * @var Workflows
      */
-    public $workflows;
-    /**
-     * @var \stdClass
-     */
-    protected $upstream_data;
-    /**
-     * @var string The URL at which to fetch this model's information
-     */
-    protected $url;
+    private $workflows;
     /**
      * @var array
      */
     private $features;
-
-    /**
-     * @inheritdoc
-     */
-    public function __construct($attributes = null, array $options = [])
-    {
-        parent::__construct($attributes, $options);
-        $this->url = "sites/{$this->id}?site_state=true";
-
-        $this->setUpstream($attributes);
-    }
 
     /**
      * Add a payment method to the given site
@@ -117,12 +106,8 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
      */
     public function dashboardUrl()
     {
-        return sprintf(
-            '%s://%s/sites/%s',
-            $this->getConfig()->get('dashboard_protocol'),
-            $this->getConfig()->get('dashboard_host'),
-            $this->id
-        );
+        $config = $this->getConfig();
+        return "{$config->get('dashboard_protocol')}://{$config->get('dashboard_host')}/sites/{$this->id}";
     }
 
     /**
@@ -149,28 +134,24 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
     }
 
     /**
-     * Fetches this object from Pantheon
-     *
-     * @param array $options params to pass to url request
-     * @return Site
-     */
-    public function fetch(array $options = [])
-    {
-        $data = $this->request()->request($this->url)['data'];
-        $this->setUpstream($data);
-        $this->attributes = (object)array_merge((array)$this->attributes, (array)$data);
-        return $this;
-    }
-
-    /**
      * @return Branches
      */
     public function getBranches()
     {
         if (empty($this->branches)) {
-            $this->branches = $this->getContainer()->get(Branches::class, [['site' => $this,]]);
+            $this->branches = $this->getContainer()->get(Branches::class, [['site' => $this,],]);
         }
         return $this->branches;
+    }
+
+    /**
+     * Reset our environments cache. This may be necessary after calling
+     * $site->getEnvironments()->create($to_env_id, $from_env), as Terminus
+     * will not have any information about the new environment in its cache.
+     */
+    public function unsetEnvironments()
+    {
+        unset($this->environments);
     }
 
     /**
@@ -179,7 +160,7 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
     public function getEnvironments()
     {
         if (empty($this->environments)) {
-            $this->environments = $this->getContainer()->get(Environments::class, [['site' => $this,]]);
+            $this->environments = $this->getContainer()->get(Environments::class, [['site' => $this,],]);
         }
         return $this->environments;
     }
@@ -218,7 +199,7 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
     public function getNewRelic()
     {
         if (empty($this->new_relic)) {
-            $this->new_relic = $this->getContainer()->get(NewRelic::class, [null, ['site' => $this,]]);
+            $this->new_relic = $this->getContainer()->get(NewRelic::class, [null, ['site' => $this,],]);
         }
         return $this->new_relic;
     }
@@ -229,34 +210,9 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
     public function getOrganizationMemberships()
     {
         if (empty($this->user_memberships)) {
-            $this->org_memberships = $this->getContainer()->get(SiteOrganizationMemberships::class, [['site' => $this,]]);
+            $this->org_memberships = $this->getContainer()->get(SiteOrganizationMemberships::class, [['site' => $this,],]);
         }
         return $this->org_memberships;
-    }
-
-    /**
-     * Returns all organization members of this site
-     *
-     * @return SiteOrganizationMembership[]
-     */
-    public function getOrganizations()
-    {
-        $memberships = $this->getOrganizationMemberships()->all();
-        $orgs = array_combine(
-            array_map(
-                function ($membership) {
-                    return $membership->organization->id;
-                },
-                $memberships
-            ),
-            array_map(
-                function ($membership) {
-                    return $membership->organization;
-                },
-                $memberships
-            )
-        );
-        return $orgs;
     }
 
     /**
@@ -275,9 +231,17 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
     public function getRedis()
     {
         if (empty($this->redis)) {
-            $this->redis = $this->getContainer()->get(Redis::class, [null, ['site' => $this,]]);
+            $this->redis = $this->getContainer()->get(Redis::class, [null, ['site' => $this,],]);
         }
         return $this->redis;
+    }
+
+    /**
+     * @return array
+     */
+    public function getReferences()
+    {
+        return [$this->id, $this->getName(), $this->get('label'),];
     }
 
     /**
@@ -286,7 +250,7 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
     public function getSolr()
     {
         if (empty($this->solr)) {
-            $this->solr = $this->getContainer()->get(Solr::class, [null, ['site' => $this,]]);
+            $this->solr = $this->getContainer()->get(Solr::class, [null, ['site' => $this,],]);
         }
         return $this->solr;
     }
@@ -296,7 +260,13 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
      */
     public function getUpstream()
     {
-        return $this->getContainer()->get(Upstream::class, [$this->upstream_data, ['site' => $this,]]);
+        if (is_null($upstream_data = $this->get('upstream'))
+            && !is_null($settings = $this->get('settings'))
+            && isset($settings->upstream)
+        ) {
+            $upstream_data = $settings->upstream;
+        }
+        return $this->getContainer()->get(Upstream::class, [$upstream_data, ['site' => $this,],]);
     }
 
     /**
@@ -305,7 +275,7 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
     public function getUserMemberships()
     {
         if (empty($this->user_memberships)) {
-            $this->user_memberships = $this->getContainer()->get(SiteUserMemberships::class, [['site' => $this,]]);
+            $this->user_memberships = $this->getContainer()->get(SiteUserMemberships::class, [['site' => $this,],]);
         }
         return $this->user_memberships;
     }
@@ -316,7 +286,7 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
     public function getWorkflows()
     {
         if (empty($this->workflows)) {
-            $this->workflows = $this->getContainer()->get(Workflows::class, [['site' => $this,]]);
+            $this->workflows = $this->getContainer()->get(Workflows::class, [['site' => $this,],]);
         }
         return $this->workflows;
     }
@@ -338,14 +308,18 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
      */
     public function serialize()
     {
+        $settings = $this->get('settings');
+
+        $created_date = is_numeric($created = $this->get('created')) ? $created : strtotime($created);
         $data = [
             'id' => $this->id,
             'name' => $this->get('name'),
             'label' => $this->get('label'),
-            'created' => date($this->getConfig()->get('date_format'), $this->get('created')),
+            'created' => date($this->getConfig()->get('date_format'), $created_date),
             'framework' => $this->get('framework'),
             'organization' => $this->get('organization'),
             'service_level' => $this->get('service_level'),
+            'max_num_cdes' => $settings ? $settings->max_num_cdes : 0,
             'upstream' => (string)$this->getUpstream(),
             'php_version' => $this->getPHPVersion(),
             'holder_type' => $this->get('holder_type'),
@@ -391,21 +365,5 @@ class Site extends TerminusModel implements ConfigAwareInterface, ContainerAware
             }
             throw $e;
         }
-    }
-
-    /**
-     * Ensures the proper creation of an Upstream object
-     *
-     * @param object $attributes Data about the site from the API
-     */
-    private function setUpstream($attributes)
-    {
-        $upstream_data = (object)[];
-        if (isset($attributes->settings->upstream)) {
-            $upstream_data = $attributes->settings->upstream;
-        } else if (isset($attributes->upstream)) {
-            $upstream_data = $attributes->upstream;
-        }
-        $this->upstream_data = $upstream_data;
     }
 }

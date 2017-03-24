@@ -2,9 +2,9 @@
 
 namespace Pantheon\Terminus\UnitTests\Commands\Remote;
 
-use Pantheon\Terminus\Exceptions\TerminusException;
 use Pantheon\Terminus\Exceptions\TerminusProcessException;
 use Pantheon\Terminus\UnitTests\Commands\CommandTestCase;
+use Symfony\Component\Process\ProcessUtils;
 
 /**
  * SSHBaseCommand Test Suite
@@ -31,11 +31,9 @@ class SSHBaseCommandTest extends CommandTestCase
     public function testExecuteCommand()
     {
         $dummy_output = 'dummy output';
-        $options = ['arg1', 'arg2',];
+        $options = ['arg1', 'arg2', '<escape me>',];
         $site_name = 'site name';
         $mode = 'sftp';
-        $command = 'dummy ' . implode(' ', $options);
-        $status_code = 0;
 
         $this->environment->expects($this->once())
             ->method('get')
@@ -51,17 +49,10 @@ class SSHBaseCommandTest extends CommandTestCase
             ->method('log')
             ->with(
                 $this->equalTo('notice'),
-                $this->equalTo('Command: {site}.{env} -- {command} [Exit: {exit}]'),
-                $this->equalTo([
-                    'site' => $site_name,
-                    'env' => $this->environment->id,
-                    'command' => "'$command'",
-                    'exit' => $status_code,
-                ])
+                $this->equalTo('Command: {site}.{env} -- {command} [Exit: {exit}]')
             );
         $this->environment->expects($this->once())
             ->method('sendCommandViaSsh')
-            ->with($this->equalTo('dummy ' . implode(' ', $options)))
             ->willReturn(['output' => $dummy_output, 'exit_code' => 0,]);
 
         $out = $this->command->dummyCommand("$site_name.env", $options);
@@ -80,6 +71,8 @@ class SSHBaseCommandTest extends CommandTestCase
         $status_code = 1;
         $this->environment->id = 'env_id';
         $command = 'dummy ' . implode(' ', $options);
+
+        $expectedLoggedCommand = 'dummy arg1 arg2';
 
         $this->environment->expects($this->once())
             ->method('get')
@@ -103,7 +96,7 @@ class SSHBaseCommandTest extends CommandTestCase
                 $this->equalTo([
                     'site' => $site_name,
                     'env' => $this->environment->id,
-                    'command' => "'$command'",
+                    'command' => "$expectedLoggedCommand",
                     'exit' => $status_code,
                 ])
             );
@@ -120,11 +113,13 @@ class SSHBaseCommandTest extends CommandTestCase
     public function testExecuteCommandInGitMode()
     {
         $dummy_output = 'dummy output';
-        $options = ['arg1', 'arg2',];
+        $options = ['arg1', 'arg2', '--secret', 'somesecret'];
         $site_name = 'site name';
         $mode = 'git';
         $status_code = 0;
         $command = 'dummy ' . implode(' ', $options);
+
+        $expectedLoggedCommand = 'dummy arg1 arg2';
 
         $this->environment->expects($this->once())
             ->method('get')
@@ -153,7 +148,7 @@ class SSHBaseCommandTest extends CommandTestCase
                 $this->equalTo([
                     'site' => $site_name,
                     'env' => $this->environment->id,
-                    'command' => "'$command'",
+                    'command' => "$expectedLoggedCommand",
                     'exit' => $status_code,
                 ])
             );

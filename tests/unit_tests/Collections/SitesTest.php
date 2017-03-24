@@ -5,12 +5,14 @@ namespace Pantheon\Terminus\UnitTests\Collections;
 use League\Container\Container;
 use Pantheon\Terminus\Collections\SiteOrganizationMemberships;
 use Pantheon\Terminus\Collections\Sites;
+use Pantheon\Terminus\Collections\SiteUserMemberships;
 use Pantheon\Terminus\Collections\Tags;
 use Pantheon\Terminus\Collections\Workflows;
 use Pantheon\Terminus\Exceptions\TerminusException;
 use Pantheon\Terminus\Models\Organization;
 use Pantheon\Terminus\Models\Site;
 use Pantheon\Terminus\Models\SiteOrganizationMembership;
+use Pantheon\Terminus\Models\SiteUserMembership;
 use Pantheon\Terminus\Models\User;
 use Pantheon\Terminus\Models\Workflow;
 use Pantheon\Terminus\Request\Request;
@@ -117,6 +119,13 @@ class SitesTest extends CollectionTestCase
 
         $out = $this->collection->createForMigration($params);
         $this->assertEquals($out, $this->workflow);
+    }
+
+    public function testFetchWhichReturnsNoSites()
+    {
+        $this->collection = $this->makeSitesFetchableWithNoSiteData($this->collection);
+        $out = $this->collection->fetch();
+        $this->assertEquals($this->collection, $out);
     }
 
     public function testFetch()
@@ -253,7 +262,7 @@ class SitesTest extends CollectionTestCase
                 $this->equalTo("site-names/$site_name"),
                 $this->equalTo(['method' => 'get',])
             )
-            ->willReturn(['data' => (object)['id' => $uuid,]]);
+            ->willReturn(['data' => (object)['id' => $uuid,],]);
         $this->container->expects($this->once())
             ->method('get')
             ->with(
@@ -268,6 +277,19 @@ class SitesTest extends CollectionTestCase
 
         $out = $this->collection->get($site_name);
         $this->assertEquals($out, $site);
+    }
+
+    /**
+     * Tests the Sites::get(string) function when getting a site when the sites have been fetched already
+     */
+    public function testGetFetched()
+    {
+        $uuid = '11111111-1111-1111-1111-111111111111';
+        $this->collection = $this->makeSitesFetchable($this->collection);
+        $this->collection->fetch();
+
+        $out = $this->collection->get($uuid);
+        $this->assertEquals($out, $this->site1);
     }
 
     /**
@@ -302,47 +324,6 @@ class SitesTest extends CollectionTestCase
 
         $out = $this->collection->get($uuid);
         $this->assertNull($out);
-    }
-
-    /**
-     * Tests the Sites::get(string) function when getting a site by UUID when the sites have been fetched already
-     */
-    public function testGetFetchedByUUID()
-    {
-        $uuid = '11111111-1111-1111-1111-111111111111';
-        $this->collection = $this->makeSitesFetchable($this->collection);
-        $this->collection->fetch();
-        $out = $this->collection->get($uuid);
-        $this->assertEquals($out, $this->site1);
-    }
-
-    /**
-     * Tests the Sites::get(string) function when getting a site by name when the sites have been fetched already
-     */
-    public function testGetFetchedByName()
-    {
-        $this->collection = $this->makeSitesFetchable($this->collection);
-
-        $this->site1->expects($this->at(0))
-            ->method('get')
-            ->with($this->equalTo('name'))
-            ->willReturn('site1');
-        $this->site1->expects($this->at(1))
-            ->method('get')
-            ->with($this->equalTo('id'))
-            ->willReturn('11111111-1111-1111-1111-111111111111');
-        $this->site2->expects($this->at(0))
-            ->method('get')
-            ->with($this->equalTo('name'))
-            ->willReturn('site2');
-        $this->site2->expects($this->at(1))
-            ->method('get')
-            ->with($this->equalTo('id'))
-            ->willReturn('22222222-2222-2222-2222-222222222222');
-
-        $this->collection->fetch();
-        $out = $this->collection->get('site1');
-        $this->assertEquals($out, $this->site1);
     }
 
     /**
@@ -408,22 +389,34 @@ class SitesTest extends CollectionTestCase
      */
     protected function makeSitesFetchable(Sites $sites)
     {
+        $id1 = '11111111-1111-1111-1111-111111111111';
+        $name1 = 'site1';
         $this->site1 = $this->getMockBuilder(Site::class)
             ->enableOriginalConstructor()
             ->setConstructorArgs([
-                (object)['id' => '11111111-1111-1111-1111-111111111111', 'name' => 'site1', 'owner' => 'person1',],
+                (object)['id' => $id1, 'name' => $name1, 'owner' => 'person1',],
                 ['collection' => $sites,]
             ])
             ->getMock();
-        $this->site1->memberships = ['orgmembership', 'usermembership',];
+        $site_org_membership = $this->getMockBuilder(SiteOrganizationMembership::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $this->site1->memberships = [$site_org_membership, $site_org_membership,];
+        $this->site1->method('getReferences')->with()->willReturn([$id1, $name1,]);
+        $id2 = '22222222-2222-2222-2222-222222222222';
+        $name2 = 'site2';
         $this->site2 = $this->getMockBuilder(Site::class)
             ->enableOriginalConstructor()
             ->setConstructorArgs([
-                (object)['id' => '22222222-2222-2222-2222-222222222222', 'name' => 'site2', 'owner' => 'person2',],
+                (object)['id' => $id2, 'name' => $name2, 'owner' => 'person2',],
                 ['collection' => $sites,]
             ])
             ->getMock();
-        $this->site2->memberships = ['usermembership',];
+        $site_user_membership = $this->getMockBuilder(SiteUserMembership::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $this->site2->memberships = [$site_user_membership,];
+        $this->site2->method('getReferences')->with()->willReturn([$id2, $name2,]);
         $org_memberships = $this->getMockBuilder(SiteOrganizationMemberships::class)
             ->disableOriginalConstructor()
             ->getMock();
@@ -439,7 +432,7 @@ class SitesTest extends CollectionTestCase
             ->with()
             ->willReturn([$this->site1, $this->site2,]);
         $this->user->expects($this->once())
-            ->method('getOrgMemberships')
+            ->method('getOrganizationMemberships')
             ->with()
             ->willReturn($org_memberships);
         $org_memberships->expects($this->once())
@@ -462,6 +455,58 @@ class SitesTest extends CollectionTestCase
             ->method('getSites')
             ->with()
             ->willReturn([$this->site1,]);
+
+        return $sites;
+    }
+
+    /**
+     * @param Sites $sites Sites object to make fetchable
+     * @return Sites
+     */
+    protected function makeSitesFetchableWithNoSiteData(Sites $sites)
+    {
+        $id1 = '11111111-1111-1111-1111-111111111111';
+        $name1 = 'site1';
+        $this->site1 = $this->getMockBuilder(Site::class)
+            ->enableOriginalConstructor()
+            ->setConstructorArgs([
+                (object)['id' => $id1, 'name' => $name1, 'owner' => 'person1',],
+                ['collection' => $sites,]
+            ])
+            ->getMock();
+        $this->site1->memberships = ['orgmembership', 'usermembership',];
+        $this->site1->method('getReferences')->with()->willReturn([$id1, $name1,]);
+        $id2 = '22222222-2222-2222-2222-222222222222';
+        $name2 = 'site2';
+        $this->site2 = $this->getMockBuilder(Site::class)
+            ->enableOriginalConstructor()
+            ->setConstructorArgs([
+                (object)['id' => $id2, 'name' => $name2, 'owner' => 'person2',],
+                ['collection' => $sites,]
+            ])
+            ->getMock();
+        $this->site2->memberships = ['usermembership',];
+        $this->site2->method('getReferences')->with()->willReturn([$id2, $name2,]);
+        $org_memberships = $this->getMockBuilder(SiteOrganizationMemberships::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->user->expects($this->any())
+            ->method('getSites')
+            ->with()
+            ->willReturn([$this->site1, $this->site2,]);
+        $this->user->expects($this->once())
+            ->method('getOrganizationMemberships')
+            ->with()
+            ->willReturn($org_memberships);
+        $org_memberships->expects($this->once())
+            ->method('fetch')
+            ->with()
+            ->willReturn($org_memberships);
+        $org_memberships->expects($this->once())
+            ->method('all')
+            ->with()
+            ->willReturn(null);
 
         return $sites;
     }

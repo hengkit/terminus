@@ -1,6 +1,40 @@
 # Change Log
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org)
 
+## MASTER
+### Changed
+- Reenabled the `self:console` command in PHP 7.1. (#1664)
+### Fixed
+- Corrected typo in `aliases` command which prevented the authorization hook from working on it. (#1663)
+
+## 1.1.1 - 2017-03-09
+### Fixed
+- composer.json file now has its `bin` property set to include `bin/terminus`. (#1656)
+
+## 1.1.0 - 2017-03-09
+### Added
+- Added an `--element=` option to `backup:list`. (#1563)
+- Added the label column to `org:list`'s output. (#1612)
+- Added the `upstream:updates:status` command to report whether any site environment is outdated or current. (#1654)
+
+### Changed
+- `self:cc` now acts to delete all files in the command cache directory. (#1569)
+- `env:clone-content` and `env:deploy` now refuse to clone from uninitialized environments. (#1608)
+- Encapsulation of the properties of models and collections has been tightened. Please use getter and setter methods to access them. (#1615)
+- The column labeled as `name` in `org:list`'s output now contains the machine name of an organization. (#1612)
+- Any command using an `organization` parameter or `org` option now accepts an organization's UUID, name, and label. (#1612)
+- The first parameter of `SiteOrganizationMemberships::create($org, $role)` is now an Organization object. (#1612)
+
+### Deprecated
+- The `element` parameter on `backup:list` is deprecated. Use the `--element=` option instead. (#1563)
+- The `wait()` function of `Workflows` is deprecated. Use `checkStatus()` instead. (#1584)
+- The `User::getOrgMemberships()` is deprecated. Use `User::getOrganizationMemberships()` instead. (#1613)
+
+### Fixed
+- Fixed the base branch in the URL when checking for upstream updates. (#1581)
+- Fixed `new-relic:info` by changing `NewRelic::serialize()` to fetch its data before attempting to return it. (#1648)
+- Removed login information from the debug output. (#1642)
+
 ## 1.0.0 - 2017-01-20
 ### Added
 - Added `--to=` option to `backup:get` to allow specifying of a local download location. (#1520)

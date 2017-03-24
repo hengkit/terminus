@@ -24,12 +24,10 @@ class CreateCommand extends SiteCommand implements ContainerAwareInterface
      * @param string $site_name Site name
      * @param string $label Site label
      * @param string $upstream_id Upstream name or UUID
-     * @option string $org Organization name or UUID
+     * @option org Organization name, label, or ID
      *
-     * @usage terminus site:create <site> <label> <upstream>
-     *     Creates a new site named <site>, human-readably labeled <label>, using code from <upstream>.
-     * @usage terminus site:create <site> <label> <upstream> --org=<org>
-     *     Creates a new site named <site>, human-readably labeled <label>, using code from <upstream>, associated with <organization>.
+     * @usage <site> <label> <upstream> Creates a new site named <site>, human-readably labeled <label>, using code from <upstream>.
+     * @usage <site> <label> <upstream> --org=<org> Creates a new site named <site>, human-readably labeled <label>, using code from <upstream>, associated with <organization>.
      */
 
     public function create($site_name, $label, $upstream_id, $options = ['org' => null,])
@@ -49,7 +47,7 @@ class CreateCommand extends SiteCommand implements ContainerAwareInterface
 
         // Locate organization
         if (!is_null($org_id = $options['org'])) {
-            $org = $user->getOrgMemberships()->get($org_id)->getOrganization();
+            $org = $user->getOrganizationMemberships()->get($org_id)->getOrganization();
             $workflow_options['organization_id'] = $org->id;
         }
 

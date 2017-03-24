@@ -6,6 +6,7 @@ use Pantheon\Terminus\Collections\Backups;
 use Pantheon\Terminus\Collections\Workflows;
 use Pantheon\Terminus\Models\Backup;
 use Pantheon\Terminus\Models\Environment;
+use Pantheon\Terminus\Models\Site;
 use Pantheon\Terminus\Models\Workflow;
 use Pantheon\Terminus\Exceptions\TerminusException;
 
@@ -260,27 +261,6 @@ class BackupsTest extends CollectionTestCase
         $this->assertEquals($this->workflow, $actual);
     }
 
-    /**
-     * Tests Fetch when the backups have IDs
-     */
-    public function testFetch()
-    {
-        $backups = $this->createBackupsWithModels();
-        $this->assertEquals($backups, $backups->fetch());
-    }
-
-    public function testFetchWithoutIDs()
-    {
-        $model_data = (object)[
-            '1471562180_backup_code' => (object)['filename' => 'behat-tests_dev_2016-08-18T23-16-20_UTC_code.tar.gz',],
-            '1471562156_backup_manifest' => (object)[]
-        ];
-
-        $backups = $this->createBackups();
-        $out = $backups->fetch(['data' => $model_data,]);
-        $this->assertEquals($out, $backups);
-    }
-
     public function testGetBackupByFileName()
     {
         $backups = $this->createBackupsWithModels();
@@ -293,8 +273,8 @@ class BackupsTest extends CollectionTestCase
         $this->assertEquals($out->get('task_id'), $data->task_id);
         $this->assertEquals($out->get('filename'), $data->filename);
 
-        $this->setExpectedException(TerminusException::class, "Cannot find a backup named not-there.");
-        $out = $backups->getBackupByFileName("not-there");
+        $this->setExpectedException(TerminusException::class, "Could not find a backup identified by not-there.");
+        $out = $backups->getBackupByFileName('not-there');
         $this->assertNull($out);
     }
 
@@ -434,7 +414,7 @@ class BackupsTest extends CollectionTestCase
             )
             ->willReturn($this->workflow);
 
-        $actual = $backups->setBackupSchedule(['day' => 'Sunday']);
+        $actual = $backups->setBackupSchedule(['day' => 'Sunday',]);
         $this->assertEquals($this->workflow, $actual);
 
         $backups = $this->createBackups();
@@ -444,38 +424,40 @@ class BackupsTest extends CollectionTestCase
                 'change_backup_schedule',
                 ['params' => [
                     'backup_schedule' => (object)[
-                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL],
-                        (object)['hour' => 5, 'ttl' => Backups::WEEKLY_BACKUP_TTL],
-                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL],
-                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL],
-                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL],
-                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL],
-                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL],
+                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL,],
+                        (object)['hour' => 5, 'ttl' => Backups::WEEKLY_BACKUP_TTL,],
+                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL,],
+                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL,],
+                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL,],
+                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL,],
+                        (object)['hour' => 5, 'ttl' => Backups::DAILY_BACKUP_TTL,],
                     ]
                 ]]
             )
             ->willReturn($this->workflow);
 
-        $actual = $backups->setBackupSchedule(['day' => 'Monday', 'hour' => 5]);
+        $actual = $backups->setBackupSchedule(['day' => 'Monday', 'hour' => 5,]);
         $this->assertEquals($this->workflow, $actual);
     }
 
     protected function createBackups()
     {
+        $site = $this->getMockBuilder(Site::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $site->id = 'abc';
         $this->workflow = $this->getMockBuilder(Workflow::class)
             ->disableOriginalConstructor()
             ->getMock();
-
         $this->workflows = $this->getMockBuilder(Workflows::class)
             ->disableOriginalConstructor()
             ->getMock();
         $this->environment = $this->getMockBuilder(Environment::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $this->environment->method('getWorkflows')->willReturn($this->workflows);
-
-        $this->environment->site = (object)['id' => 'abc'];
         $this->environment->id = 'dev';
+        $this->environment->method('getWorkflows')->willReturn($this->workflows);
+        $this->environment->method('getSite')->willReturn($site);
 
         $backups = new Backups(['environment' => $this->environment]);
         $backups->setRequest($this->request);
@@ -490,12 +472,12 @@ class BackupsTest extends CollectionTestCase
             ->method('request')
             ->with(
                 'sites/abc/environments/dev/backups/catalog',
-                ['options' => ['method' => 'get']]
+                ['options' => ['method' => 'get',],]
             )
-            ->willReturn(['data' => $this->backup_data]);
+            ->willReturn(['data' => $this->backup_data,]);
 
         $i = 0;
-        foreach ($this->backup_data as $id => $data) {
+        foreach ((array)$this->backup_data as $id => $data) {
             if (isset($data->filename)) {
                 $data->id = $id;
                 $this->container->expects($this->at($i++))
@@ -504,7 +486,7 @@ class BackupsTest extends CollectionTestCase
                         Backup::class,
                         [
                             $data,
-                            ['id' => $id, 'collection' => $backups]
+                            ['id' => $id, 'collection' => $backups,]
                         ]
                     )
                     ->willReturn(new Backup($data, ['collection' => $backups,]));

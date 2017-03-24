@@ -10,56 +10,101 @@ use Psr\Log\NullLogger;
 
 class PluginDiscoveryTest extends \PHPUnit_Framework_TestCase
 {
-    public function testDiscover()
+    /**
+     * @var Container
+     */
+    protected $container;
+    /**
+     * @var PluginDiscovery
+     */
+    protected $discovery;
+    /**
+     * @var NullLogger
+     */
+    protected $logger;
+    /**
+     * @var string
+     */
+    protected $plugins_dir;
+
+    /**
+     * @inheritdoc
+     */
+    public function setUp()
     {
-        $plugins_dir = __DIR__ . '/../../fixtures/plugins/';
+        parent::setUp();
 
-        $paths = [
-            $plugins_dir  . 'invalid-no-composer-json',
-            $plugins_dir  . 'invalid-wrong-composer-type',
-            $plugins_dir  . 'with-namespace',
-            $plugins_dir  . 'without-namespace'
-        ];
-
-        $logger = $this->getMockBuilder(NullLogger::class)
-            ->setMethods(array('warning'))
-            ->getMock();
-
-
-        $container = $this->getMockBuilder(Container::class)
+        $this->container = $this->getMockBuilder(Container::class)
             ->disableOriginalConstructor()
             ->getMock();
+        $this->logger = $this->getMockBuilder(NullLogger::class)
+            ->setMethods(['warning',])
+            ->getMock();
+        $this->plugins_dir = dirname(dirname(__DIR__)) . '/fixtures/plugins/';
+
+        $this->discovery = new PluginDiscovery($this->plugins_dir);
+        $this->discovery->setLogger($this->logger);
+    }
+
+    public function testDiscover()
+    {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $this->markTestIncomplete("Plugins not supported on Windows yet.");
+        }
+
+        $invalid_paths = [
+            'invalid-no-composer-json' => 'The file "{path}/composer.json" does not exist',
+            'invalid-wrong-composer-type' => 'The composer.json must contain a "type" attribute with the value "terminus-plugin"',
+        ];
+        $valid_paths = [
+            'with-namespace',
+            'without-namespace',
+        ];
 
         $expected = [];
         $log = 0;
-        foreach ($paths as $i => $path) {
-            if (strpos($path, 'invalid')) {
-                $msg = "Plugin $i is not valid";
-                $container->expects($this->at($i))
-                    ->method('get')
-                    ->with(PluginInfo::class, [$path])
-                    ->willThrowException(new TerminusException($msg));
-
-                $logger->expects($this->at($log++))
-                    ->method('warning')
-                    ->with('Plugin Discovery: Ignoring directory {dir} because: {msg}.', ['dir' => $path, 'msg' => $msg]);
-            } else {
-                $plugin = $this->getMockBuilder(PluginInfo::class)
-                    ->disableOriginalConstructor()
-                    ->getMock();
-                $container->expects($this->at($i))
-                    ->method('get')
-                    ->with(PluginInfo::class, [$path])
-                    ->willReturn($plugin);
-                $expected[] = $plugin;
-            }
+        foreach ($invalid_paths as $path => $msg) {
+            $path = $this->plugins_dir . $path;
+            $msg = str_replace('{path}', $path, $msg);
+            $this->logger->expects($this->at($log++))
+                ->method('warning')
+                ->with(
+                    'Plugin Discovery: Ignoring directory {dir} because: {msg}.',
+                    ['dir' => $path, 'msg' => $msg,]
+                );
         }
 
-        $discovery = new PluginDiscovery($plugins_dir);
-        $discovery->setContainer($container);
-        $discovery->setLogger($logger);
-
-        $actual = $discovery->discover();
+        $pluginList = $this->discovery->discover();
+        $actual = $this->composeActualCommandFileDirectories($pluginList);
+        $expected = $this->composeExpectedCommandFileDirectories($valid_paths, $this->plugins_dir);
         $this->assertEquals($expected, $actual);
+    }
+
+    protected function composeActualCommandFileDirectories($pluginList)
+    {
+        $dirList = [];
+        foreach ($pluginList as $plugin) {
+            $commandFileDirectory = $this->callProtected($plugin, 'getCommandFileDirectory');
+            $dirList[] = $commandFileDirectory;
+        }
+        $actual = implode(',', $dirList);
+        return $actual;
+    }
+
+    protected function composeExpectedCommandFileDirectories($valid_paths, $dir)
+    {
+        return implode(',', array_map(
+            function ($item) use ($dir) {
+                return "$dir$item/src";
+            },
+            $valid_paths
+        ));
+    }
+
+    protected function callProtected($object, $method, $args = [])
+    {
+        $r = new \ReflectionMethod($object, $method);
+        $r->setAccessible(true);
+        return $r->invokeArgs($object, $args);
     }
 }

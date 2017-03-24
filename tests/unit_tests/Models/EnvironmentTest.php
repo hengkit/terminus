@@ -20,6 +20,7 @@ use Pantheon\Terminus\Models\Workflow;
 use Pantheon\Terminus\Collections\Commits;
 use Pantheon\Terminus\Models\Commit;
 use Pantheon\Terminus\Exceptions\TerminusException;
+use Symfony\Component\Process\ProcessUtils;
 
 /**
  * Class EnvironmentTest
@@ -266,7 +267,7 @@ class EnvironmentTest extends ModelTestCase
         $username = $database = 'pantheon';
         $sftp_username = "{$this->model->id}.{$this->site->id}";
         $sftp_hostname = "appserver.$sftp_username.drush.in";
-        $db_hostname = "dbserver.{$this->model->id}.{$this->model->site->id}.drush.in";
+        $db_hostname = "dbserver.{$this->model->id}.{$this->model->getSite()->id}.drush.in";
         $cache_hostname = 'hostname';
         $git_hostname = "codeserver.dev.{$this->site->id}.drush.in";
         $git_username = "codeserver.dev.{$this->site->id}";
@@ -416,7 +417,7 @@ class EnvironmentTest extends ModelTestCase
         $password = 'password';
         $port = 'port';
         $username = $database = 'pantheon';
-        $hostname = "dbserver.{$this->model->id}.{$this->model->site->id}.drush.in";
+        $hostname = "dbserver.{$this->model->id}.{$this->model->getSite()->id}.drush.in";
         $expected = [
             'username' => $username,
             'password' => $password,
@@ -601,6 +602,17 @@ class EnvironmentTest extends ModelTestCase
         $this->assertEquals($this->backups, $out);
     }
 
+    /**
+     * Tests Environment::getBranchName()
+     */
+    public function testGetBranchName()
+    {
+        $env_id = 'environment id';
+        $multidev_env = $this->createModel(['id' => $env_id,]);
+        $this->assertEquals($env_id, $multidev_env->getBranchName());
+        $this->assertEquals('master', $this->model->getBranchName());
+    }
+
     public function testGetCommits()
     {
         $out = $this->model->getCommits();
@@ -734,24 +746,44 @@ class EnvironmentTest extends ModelTestCase
         );
     }
 
-    public function testEnvIsInitialized()
+    public function testIsInitialized()
     {
-        $this->assertTrue($this->model->isInitialized());
+        $commits = $this->getMockBuilder(Commits::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $container = $this->getMockBuilder(Container::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $environments = $this->getMockBuilder(Environments::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $container->method('get')->willReturn($commits);
+        $environments->method('getSite')->with()->willReturn($this->site);
+
+        $model = new Environment((object)['id' => 'neither test nor live',], ['collection' => $environments,]);
+        $this->assertTrue($model->isInitialized());
+
+        $model = new Environment((object)['id' => 'test',], ['collection' => $environments,]);
+        $model->setContainer($container);
+        $commits->expects($this->once())
+            ->method('all')
+            ->willReturn([]);
+        $this->assertFalse($model->isInitialized());
+    }
+
+    public function testIsDevelopment()
+    {
+        $model = $this->createModel(['id' => 'test',]);
+        $this->assertFalse($model->isDevelopment());
+
+        $model = $this->createModel(['id' => 'live',]);
+        $this->assertFalse($model->isDevelopment());
 
         $model = $this->createModel(['id' => 'mymulti',]);
-        $this->assertTrue($model->isInitialized());
+        $this->assertTrue($model->isDevelopment());
 
-        $commits = [
-            ['some', 'commit',],
-        ];
-        $model = $this->createModel(['id' => 'test',]);
-        $model->commits = $this->getCommits($commits);
-        $this->assertTrue($model->isInitialized());
-
-        $commits = [];
-        $model = $this->createModel(['id' => 'test',]);
-        $model->commits = $this->getCommits($commits);
-        $this->assertFalse($model->isInitialized());
+        $model = $this->createModel(['id' => 'dev',]);
+        $this->assertTrue($model->isDevelopment());
     }
 
     public function testIsMultidev()
@@ -818,20 +850,23 @@ class EnvironmentTest extends ModelTestCase
 
     public function testSendCommandViaSsh()
     {
+        $command = 'echo "Hello, World!"';
+        $expectedCommand = ProcessUtils::escapeArgument($command);
+
         $expected = ['output' => 'Hello, World!', 'exit_code' => 0,];
         $this->local_machine->expects($this->at(0))
             ->method('execInteractive')
-            ->with('ssh -T dev.abc@appserver.dev.abc.drush.in -p 2222 -o "AddressFamily inet" \'echo "Hello, World!"\'')
+            ->with('ssh -T dev.abc@appserver.dev.abc.drush.in -p 2222 -o "AddressFamily inet" ' . $expectedCommand)
             ->willReturn($expected);
 
-        $actual = $this->model->sendCommandViaSsh('echo "Hello, World!"');
+        $actual = $this->model->sendCommandViaSsh($command);
         $this->assertEquals($expected, $actual);
 
         $this->configSet(['test_mode' => 1]);
         $expected = [
             'output' => "Terminus is in test mode. "
                 . "Environment::sendCommandViaSsh commands will not be sent over the wire. "
-                . "SSH Command: ssh -T dev.abc@appserver.dev.abc.drush.in -p 2222 -o \"AddressFamily inet\" 'echo \"Hello, World!\"'",
+                . "SSH Command: ssh -T dev.abc@appserver.dev.abc.drush.in -p 2222 -o \"AddressFamily inet\" $expectedCommand",
             'exit_code' => 0
         ];
         $actual = $this->model->sendCommandViaSsh('echo "Hello, World!"');
@@ -880,14 +915,14 @@ class EnvironmentTest extends ModelTestCase
             'intermediary' => 'INTERMEDIARY',
         ];
         $certificate = array_merge($expected_params, ['key' => null,]);
-        $this->model->site->id = 'site id';
+        $this->model->getSite()->id = 'site id';
         $this->model->id = 'env id';
         $response = ['data' => (object)['some' => 'data',],];
 
         $this->request->expects($this->once())
             ->method('request')
             ->with(
-                $this->equalTo("sites/{$this->model->site->id}/environments/{$this->model->id}/add-ssl-cert"),
+                $this->equalTo("sites/{$this->model->getSite()->id}/environments/{$this->model->id}/add-ssl-cert"),
                 $this->equalTo(['method' => 'POST', 'form_params' => $expected_params,])
             )
             ->willReturn($response);
@@ -990,8 +1025,8 @@ class EnvironmentTest extends ModelTestCase
         $this->site = $this->getMockBuilder(Site::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $this->site->id = "abc";
-        $this->site->method('getName')->willReturn('abc');
+        $this->site->id = 'abc';
+        $this->site->method('getName')->willReturn($this->site->id);
 
         $environments = new Environments(['site' => $this->site,]);
         $model = new Environment((object)$params, ['collection' => $environments,]);

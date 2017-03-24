@@ -8,14 +8,11 @@ use Pantheon\Terminus\Collections\Environments;
 use Pantheon\Terminus\Collections\SiteOrganizationMemberships;
 use Pantheon\Terminus\Collections\SiteUserMemberships;
 use Pantheon\Terminus\Collections\Tags;
-use Pantheon\Terminus\Collections\UserSiteMemberships;
 use Pantheon\Terminus\Collections\Workflows;
 use Pantheon\Terminus\Exceptions\TerminusException;
 use Pantheon\Terminus\Models\NewRelic;
-use Pantheon\Terminus\Models\Organization;
 use Pantheon\Terminus\Models\Redis;
 use Pantheon\Terminus\Models\Site;
-use Pantheon\Terminus\Models\SiteOrganizationMembership;
 use Pantheon\Terminus\Models\Solr;
 use Pantheon\Terminus\Models\Upstream;
 use Pantheon\Terminus\Models\Workflow;
@@ -44,9 +41,17 @@ class SiteTest extends ModelTestCase
      */
     protected $new_relic;
     /**
+     * @var SiteOrganizationMemberships
+     */
+    protected $org_memberships;
+    /**
      * @var Redis
      */
     protected $redis;
+    /**
+     * @var array
+     */
+    protected $site_data;
     /**
      * @var Solr
      */
@@ -75,15 +80,20 @@ class SiteTest extends ModelTestCase
     {
         parent::setUp();
 
-        $this->container = new Container();
-
         $this->branches = $this->getMockBuilder(Branches::class)
             ->disableOriginalConstructor()
             ->getMock();
+        $this->branches = $this->getMockBuilder(Branches::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $this->container = new Container();
         $this->environments = $this->getMockBuilder(Environments::class)
             ->disableOriginalConstructor()
             ->getMock();
         $this->new_relic = $this->getMockBuilder(NewRelic::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $this->org_memberships = $this->getMockBuilder(SiteOrganizationMemberships::class)
             ->disableOriginalConstructor()
             ->getMock();
         $this->redis = $this->getMockBuilder(Redis::class)
@@ -105,8 +115,11 @@ class SiteTest extends ModelTestCase
             ->disableOriginalConstructor()
             ->getMock();
 
+        $this->site_data = (object)['id' => 'site id', 'name' => 'my-site', 'label' => 'My Site',];
+
         $this->container->add(Branches::class, $this->branches);
         $this->container->add(Environments::class, $this->environments);
+        $this->container->add(SiteOrganizationMemberships::class, $this->org_memberships);
         $this->container->add(NewRelic::class, $this->new_relic);
         $this->container->add(Redis::class, $this->redis);
         $this->container->add(SiteUserMemberships::class, $this->user_memberships);
@@ -114,7 +127,7 @@ class SiteTest extends ModelTestCase
         $this->container->add(Upstream::class, $this->upstream);
         $this->container->add(Workflows::class, $this->workflows);
 
-        $this->model = new Site((object)['id' => 123, 'name' => 'My Site']);
+        $this->model = new Site($this->site_data);
 
         $this->model->setContainer($this->container);
         $this->model->setRequest($this->request);
@@ -178,8 +191,8 @@ class SiteTest extends ModelTestCase
      */
     public function testDashboardUrl()
     {
-        $this->configSet(['dashboard_protocol' => 'https', 'dashboard_host' => 'dashboard.pantheon.io']);
-        $this->assertEquals('https://dashboard.pantheon.io/sites/123', $this->model->dashboardUrl());
+        $this->configSet(['dashboard_protocol' => 'https', 'dashboard_host' => 'dashboard.pantheon.io',]);
+        $this->assertEquals("https://dashboard.pantheon.io/sites/" . $this->site_data->id, $this->model->dashboardUrl());
     }
 
     /**
@@ -256,6 +269,48 @@ class SiteTest extends ModelTestCase
     }
 
     /**
+     * Tests Site::getEnvironments()
+     */
+    public function testUnsetEnvironments()
+    {
+        $container = $this->getMockBuilder(Container::class)
+            ->setMethods(['get'])
+            ->getMock();
+
+        $model = new Site($this->site_data);
+
+        $model->setContainer($container);
+        $model->setRequest($this->request);
+        $model->setConfig($this->config);
+
+        // We can call 'getEnvironments()' as many times as we like;
+        // it will not be re-fetched from the container until after
+        // unsetEnvironments() is called.
+        $container->expects($this->exactly(2))
+            ->method('get')
+            ->with(
+                $this->equalTo(Environments::class),
+                $this->equalTo([['site' => $model,],])
+            )
+            ->willReturn($this->environments);
+
+        // First call fetches from container
+        $environments = $model->getEnvironments();
+
+        // Does not fetch from container
+        $environments = $model->getEnvironments();
+
+        // Erases Site::$environments
+        $model->unsetEnvironments();
+
+        // Re-fetches environments from container
+        $environments = $model->getEnvironments();
+
+        // Does not fetch from container
+        $environments = $model->getEnvironments();
+    }
+
+    /**
      * Tests Site::getFeature($feature)
      */
     public function testGetFeature()
@@ -293,7 +348,24 @@ class SiteTest extends ModelTestCase
      */
     public function testGetName()
     {
-        $this->assertEquals('My Site', $this->model->getName());
+        $this->assertEquals($this->site_data->name, $this->model->getName());
+    }
+
+    /**
+     * Tests Site::getOrganizationMemberships() and OrganizationsTrait::getOrgMemberships()
+     */
+    public function testGetOrganizationMemberships()
+    {
+        $this->assertEquals($this->org_memberships, $this->model->getOrganizationMemberships());
+        $this->assertEquals($this->org_memberships, $this->model->getOrgMemberships());
+    }
+
+    /**
+     * Tests Site::getReferences()
+     */
+    public function testGetReferences()
+    {
+        $this->assertEquals(array_values((array)$this->site_data), $this->model->getReferences());
     }
 
     /**
@@ -303,35 +375,6 @@ class SiteTest extends ModelTestCase
     {
         $new_relic = $this->model->getNewRelic();
         $this->assertEquals($this->new_relic, $new_relic);
-    }
-
-    /**
-     * Tests Site::getOrganizations()
-     */
-    public function testGetOrganizations()
-    {
-        $org_membership = $this->getMockBuilder(SiteOrganizationMembership::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $org_membership->organization = $this->getMockBuilder(Organization::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $org_membership->organization->id = 'organization_id';
-        $this->org_memberships = $this->getMockBuilder(SiteOrganizationMemberships::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $this->org_memberships->expects($this->once())
-            ->method('all')
-            ->with()
-            ->willReturn([$org_membership,]);
-
-        $this->container->add(SiteOrganizationMemberships::class, $this->org_memberships);
-
-        $data = [$org_membership->organization->id => $org_membership->organization,];
-
-        $orgs = $this->model->getOrganizations();
-        $this->assertEquals($data, $orgs);
     }
 
     /**
@@ -393,7 +436,7 @@ class SiteTest extends ModelTestCase
             'id' => $this->model->id,
             'name' => 'site name',
             'label' => 'site label',
-            'created' => '-10318838400',
+            'created' => '682641540',
             'framework' => 'framework name',
             'organization' => 'organization name',
             'service_level' => 'service level',
@@ -407,7 +450,7 @@ class SiteTest extends ModelTestCase
             'id' => $this->model->id,
             'name' => 'site name',
             'label' => 'site label',
-            'created' => '1643-01-04 00:00:00',
+            'created' => '1991-08-19 22:39:00',
             'framework' => 'framework name',
             'organization' => 'organization name',
             'service_level' => 'service level',
@@ -419,6 +462,65 @@ class SiteTest extends ModelTestCase
             'frozen' => 'true',
             'memberships' => implode(',', $this->model->memberships),
             'tags' => implode(',', $tags),
+            'max_num_cdes' => null,
+        ];
+
+        $this->request->expects($this->once())
+            ->method('request')
+            ->with($this->equalTo("sites/{$this->model->id}?site_state=true"))
+            ->willReturn(compact('data'));
+        $this->upstream->method('__toString')->willReturn('***UPSTREAM***');
+        $this->model->tags->expects($this->once())
+            ->method('ids')
+            ->with()
+            ->willReturn($tags);
+
+        $returned_data = $this->model->fetch()->serialize();
+        $this->assertEquals($expected_data, $returned_data);
+    }
+
+    /**
+     * Tests Site::serialize() when the given datetime is not a Unix timestamp
+     */
+    public function testSerializeNotTimestamp()
+    {
+        $this->configSet(['date_format' => 'Y-m-d H:i:s',]);
+        $this->model->tags = $this->getMockBuilder(Tags::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $this->model->memberships = ['membership1', 'membership2',];
+        $tags = ['tag1', 'tag2',];
+        $data = (object)[
+            'id' => $this->model->id,
+            'name' => 'site name',
+            'label' => 'site label',
+            'created' => 'August 19, 1991 10:39PM',
+            'framework' => 'framework name',
+            'organization' => 'organization name',
+            'service_level' => 'service level',
+            'php_version' => '75',
+            'holder_type' => 'holder type',
+            'holder_id' => 'holder id',
+            'owner' => 'owner id',
+            'frozen' => 'yes',
+        ];
+        $expected_data = [
+            'id' => $this->model->id,
+            'name' => 'site name',
+            'label' => 'site label',
+            'created' => '1991-08-19 22:39:00',
+            'framework' => 'framework name',
+            'organization' => 'organization name',
+            'service_level' => 'service level',
+            'upstream' => '***UPSTREAM***',
+            'php_version' => '7.5',
+            'holder_type' => 'holder type',
+            'holder_id' => 'holder id',
+            'owner' => 'owner id',
+            'frozen' => 'true',
+            'memberships' => implode(',', $this->model->memberships),
+            'tags' => implode(',', $tags),
+            'max_num_cdes' => null,
         ];
 
         $this->request->expects($this->once())

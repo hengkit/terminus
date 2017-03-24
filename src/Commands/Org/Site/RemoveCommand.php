@@ -22,15 +22,14 @@ class RemoveCommand extends TerminusCommand implements SiteAwareInterface
      * @command org:site:remove
      * @aliases org:site:rm
      *
-     * @param string $organization Organization name or ID
+     * @param string $organization Organization name, label, or ID
      * @param string $site Site name
      *
-     * @usage terminus org:site:remove <organization> <site>
-     *     Removes <site> from <organization>.
+     * @usage <organization> <site> Removes <site> from <organization>.
      */
     public function remove($organization, $site)
     {
-        $org = $this->session()->getUser()->getOrgMemberships()->get($organization)->getOrganization();
+        $org = $this->session()->getUser()->getOrganizationMemberships()->get($organization)->getOrganization();
         $membership = $org->getSiteMemberships()->get($site);
         $workflow = $membership->delete();
         while (!$workflow->checkProgress()) {
@@ -38,7 +37,7 @@ class RemoveCommand extends TerminusCommand implements SiteAwareInterface
         }
         $this->log()->notice(
             '{site} has been removed from the {org} organization.',
-            ['site' => $membership->site->get('name'), 'org' => $org->get('profile')->name,]
+            ['site' => $membership->getSite()->getName(), 'org' => $org->getName(),]
         );
     }
 }

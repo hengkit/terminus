@@ -2,6 +2,7 @@
  
 ## Status
 [![Build Status](https://travis-ci.org/pantheon-systems/terminus.svg?branch=master)](https://travis-ci.org/pantheon-systems/terminus)
+[![Windows CI](https://ci.appveyor.com/api/projects/status/niiheng08p25mgnm?svg=true)](https://ci.appveyor.com/project/greg-1-anderson/terminus)
 [![Dependency Status](https://gemnasium.com/pantheon-systems/terminus.svg)](https://gemnasium.com/pantheon-systems/terminus)
 [![Coverage Status](https://coveralls.io/repos/github/pantheon-systems/terminus/badge.svg?branch=master)](https://coveralls.io/github/pantheon-systems/terminus?branch=master)
  
@@ -10,7 +11,10 @@ Terminus is Pantheon's Command Line Interface (CLI), providing at least equivale
 browser-based Dashboard and easier scripting.
 
 If you would like to contribute, pull requests are welcome!
- 
+
+## The Manual
+Our documentation is kept in the Terminus Manual, located here: https://pantheon.io/docs/terminus
+
 ## Dependencies
 ### Required
 - A command-line client
@@ -34,7 +38,7 @@ Run this in your Terminal client:
 ```bash
 curl -O https://raw.githubusercontent.com/pantheon-systems/terminus-installer/master/builds/installer.phar && php installer.phar install
 ```
-For more information on installation options, please see the [Terminus Installer README.md file](https://github.com/pantheon-systems/terminus-installer).
+For more information on installation options or to report an issue with this method, please see the [Terminus Installer README.md file](https://github.com/pantheon-systems/terminus-installer).
 
 ### Installing with Composer
 Run this in your terminal client:
@@ -62,11 +66,11 @@ brew install homebrew/php/terminus
 To install with Git and use Terminus HEAD, you should clone this repository and run Terminus directly. If you would
 like to contribute to the Terminus source, this is the way you should install it. You will require Composer for this installation.
 
-1. Clone the repository. If you plan on contributing to the project, create a fork and clone the fork instead.
+- Clone the repository. If you plan on contributing to the project, create a fork and clone the fork instead:
 ```bash
 cd /install/location ; git clone https://github.com/pantheon-systems/terminus.git terminus
 ```
-2. Install the Composer dependencies.
+- Install the Composer dependencies:
 ```bash
 cd terminus ; composer install
 ```
@@ -74,6 +78,38 @@ cd terminus ; composer install
 You can now run the bleeding-edge version of Terminus via:
 ```bash
 bin/terminus
+```
+
+## Updating
+### Updating via the Terminus installer
+Run this in your Terminal client:
+```bash
+curl -O https://raw.githubusercontent.com/pantheon-systems/terminus-installer/master/builds/installer.phar && php installer.phar update
+```
+For more information on update options or to report an issue with this method, please see the [Terminus Installer README.md file](https://github.com/pantheon-systems/terminus-installer).
+
+### Updating with Composer
+Run this in your terminal client:
+```bash
+cd /install/location ; composer update
+```
+
+### Updating with [Homebrew](http://brew.sh/) (for Macs)
+Update Terminus with this command:
+```bash
+brew update homebrew/php/terminus
+```
+
+### Updating with Git
+To update with Git and use Terminus HEAD, you should update this repository and then update its dependencies via Composer.
+
+- Update the repository:
+```bash
+cd /install/location/terminus ; git pull
+```
+- Update the Composer dependencies:
+```bash
+composer update
 ```
 
 **Optionally**, for ease of development, we suggest aliasing or setting the path bash configuration file, or
@@ -195,3 +231,6 @@ To deploy a new version of Terminus:
 ## Debugging
 - Run Terminus with the `-vvv` option to get debug output.
 - If you are getting `PHP Fatal error:  Uncaught exception 'ReflectionException' ...`, install php-xml.
+- If you are getting `cURL error 60: SSL certificate problem: ...`, download a [cacert.pem](https://curl.haxx.se/ca/cacert.pem)
+file and add `curl.cainfo = "[path_to_file]\cacert.pem"` to your `php.ini`. If using XAMPP, you can add this to your
+`xampp\php\extras\ssl` directory.

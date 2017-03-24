@@ -30,12 +30,9 @@ class CloneContentCommand extends TerminusCommand implements SiteAwareInterface
      *
      * @throws \Pantheon\Terminus\Exceptions\TerminusException
      *
-     * @usage terminus env:clone-content <site>.<env> <target_env>
-     *   Clones database and files from <site>'s <env> environment to <target_env> environment.
-     * @usage terminus env:clone-content <site>.<env> <target_env> --db-only
-     *   Clones only the database from <site>'s <env> environment to <target_env> environment.
-     * @usage terminus env:clone-content <site>.<env> <target_env> --files-only
-     *   Clones only files from <site>'s <env> environment to <target_env> environment.
+     * @usage <site>.<env> <target_env> Clones database and files from <site>'s <env> environment to <target_env> environment.
+     * @usage <site>.<env> <target_env> --db-only Clones only the database from <site>'s <env> environment to <target_env> environment.
+     * @usage <site>.<env> <target_env> --files-only Clones only files from <site>'s <env> environment to <target_env> environment.
      */
     public function cloneContent($site_env, $target_env, array $options = ['db-only' => false, 'files-only' => false,])
     {
@@ -48,7 +45,13 @@ class CloneContentCommand extends TerminusCommand implements SiteAwareInterface
         $target = $site->getEnvironments()->get($target_env);
         $to_name = $target->getName();
 
-        $tr = ['from' => $from_name, 'to' => $to_name, 'env' => $site->getName()];
+        $tr = ['from' => $from_name, 'to' => $to_name, 'site' => $site->getName(),];
+        if (!$env->isInitialized()) {
+            throw new TerminusException(
+                "{site}'s {from} environment cannot be cloned because it has not been initialized. Please run `env:deploy {site}.{from}` to initialize it.",
+                $tr
+            );
+        }
         if (!$this->confirm('Are you sure you want to clone content from {from} to {to} on {site}?', $tr)) {
             return;
         }
