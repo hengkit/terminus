@@ -3,9 +3,19 @@ All notable changes to this project will be documented in this file. This projec
 
 ## MASTER
 ### Changed
+- `Backup::getDate()` now returns a Unix datetime instead of a formatted date. (#1676)
+
+### Added
+- The `backup:info` command has been added. (#1676)
+- Added expiration dates to backups in `backup:list`. (#1676)
+- `Backup::getExpiry()` calculates the Unix datetime of a backup's expiry. (#1676)
+
+## 1.1.2 - 2017-03-31
+### Changed
 - Reenabled the `self:console` command in PHP 7.1. (#1664)
 ### Fixed
 - Corrected typo in `aliases` command which prevented the authorization hook from working on it. (#1663)
+- Updated to match changes made to Config class in Robo 1.0.6. (#1670)
 
 ## 1.1.1 - 2017-03-09
 ### Fixed
