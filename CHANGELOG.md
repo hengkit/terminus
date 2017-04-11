@@ -1,7 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org)
 
-## MASTER
+## 1.2.1 - 2017-04-11
+### Fixed
+- Corrected the command to be used to update Terminus displayed by the `UpdateChecker`. (#1687)
+
+## 1.2.0 - 2017-04-10
 ### Changed
 - `Backup::getDate()` now returns a Unix datetime instead of a formatted date. (#1676)
 
@@ -9,6 +13,10 @@ All notable changes to this project will be documented in this file. This projec
 - The `backup:info` command has been added. (#1676)
 - Added expiration dates to backups in `backup:list`. (#1676)
 - `Backup::getExpiry()` calculates the Unix datetime of a backup's expiry. (#1676)
+
+### Fixed
+- Updates to dependencies have been applied. (#1675)
+- Fixed ambiguous text in `env:commit` and `env:diffstat` help description. (#1685)
 
 ## 1.1.2 - 2017-03-31
 ### Changed
